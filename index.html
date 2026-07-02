@@ -263,6 +263,20 @@ iframe { width: 100%; height: calc(100vh - 180px); border: none; border-radius: 
     <!-- Left: Form -->
     <div class="flex-col">
       <div class="glass-panel">
+        <h2 class="panel-title"><i class="ri-file-list-3-line"></i> 보험사 양식 선택</h2>
+        <div style="display: flex; gap: 1rem;">
+          <div style="flex: 1;">
+            <h3 style="font-size: 0.9rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--color-primary);">생명보험사</h3>
+            <div id="life-template-list" class="tpl-list"></div>
+          </div>
+          <div style="flex: 1;">
+            <h3 style="font-size: 0.9rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--color-primary);">손해보험사</h3>
+            <div id="nonlife-template-list" class="tpl-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="glass-panel">
         <h2 class="panel-title"><i class="ri-user-line"></i> 1. 피보험자 정보</h2>
         <div style="margin-bottom: 1rem; padding: 1rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg);">
           <div class="form-row">
@@ -546,19 +560,7 @@ iframe { width: 100%; height: calc(100vh - 180px); border: none; border-radius: 
         </div>
       </div>
       
-      <div class="glass-panel">
-        <h2 class="panel-title"><i class="ri-file-list-3-line"></i> 보험사 양식 선택</h2>
-        <div style="display: flex; gap: 1rem;">
-          <div style="flex: 1;">
-            <h3 style="font-size: 0.9rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--color-primary);">생명보험사</h3>
-            <div id="life-template-list" class="tpl-list"></div>
-          </div>
-          <div style="flex: 1;">
-            <h3 style="font-size: 0.9rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--color-primary);">손해보험사</h3>
-            <div id="nonlife-template-list" class="tpl-list"></div>
-          </div>
-        </div>
-      </div>
+
     </div>
     
     <!-- Right: Preview -->
