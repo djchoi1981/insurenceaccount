@@ -1,0 +1,2109 @@
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+const DUMMY_DATA = {
+  name: '홍길동', rrn: '800101-1234567', policyholderName: '김철수', policyholderRRN: '700101-1234567',
+  phone: '010-1234-5678', policyholderPhone: '010-1234-5678', insuredPhone: '010-5678-1234',
+  address: '서울특별시 강남구 테헤란로 123', policyholderAddress: '서울특별시 강남구 테헤란로 123', insuredAddress: '서울특별시 서초구 서초대로 456',
+  bankName: '국민은행', bankAccount: '123-456-789012', diagnosis: '상세 진단내용', claimAmount: '50,000',
+  idIssueYear: '2020', idIssueMonth: '01', idIssueDay: '15', idIssueAuthority: '경찰청장', driverLicenseNumber: '11-12-345678-90', driverLicenseSerial: 'A1234567', driverLicenseAuthority: '서울경찰청장',
+  legalRepName: '김철수', legalRepRelation: '부', legalRepPhone: '010-1234-5678',
+  job: '회사원', workplace: '삼성전자',
+  relationToInsured: 'V', relationToInsuredText: '부',
+  residenceDomestic: 'V', residenceForeign: '', residenceCountry: '미국',
+  email: 'test@example.com', fax: '02-123-4567',
+  diseaseName: '위염', diseaseCode: 'K29', accidentDate: '2023-05-10',
+  accidentYear: '2023', accidentMonth: '05', accidentDay: '10',
+  medicalTarget: 'V', medicalNonTarget: '',
+  compInfoPolicyholder: 'V', compInfoInsured: '', compInfoOther: '',
+  compInfoName: '김철수', compInfoPhone: '010-1234-5678',
+  claimTypeInjury: 'V', claimTypeDisease: '', claimTypeTraffic: '', claimTypeOther: '',
+  coverageInpatient: 'V', coverageOutpatient: '', coverageSurgery: '', coverageDiagnosis: '', coverageDeath: '', coverageDisability: '', coverageCost: '',
+  legalRepMomName: '이영희', legalRepMomPhone: '010-9876-5432', legalRepDadName: '김철수', legalRepDadPhone: '010-1234-5678',
+  beneficiaryNationality: '대한민국',
+  today_year: '2023', today_month: '10', today_day: '25', insuredSignature: '[서명 이미지]', policyholderSignature: '[서명 이미지]', check: 'V', strike: '삭제선', custom: '직접입력'
+};
+
+const FIELD_LABELS = {
+  name: '피보험자 성명', rrn: '피보험자 주민등록번호', policyholderName: '계약자(수익자) 성명', policyholderRRN: '계약자 주민번호',
+  phone: '연락처(공통)', policyholderPhone: '계약자 연락처', insuredPhone: '피보험자 연락처',
+  address: '주소(공통)', policyholderAddress: '계약자 주소', insuredAddress: '피보험자 주소',
+  bankName: '은행명', bankAccount: '계좌번호', diagnosis: '진단명/사고경위', claimAmount: '청구금액',
+  idIssueYear: '발급연도', idIssueMonth: '발급월', idIssueDay: '발급일', idIssueAuthority: '발급기관', driverLicenseNumber: '운전면허번호', driverLicenseSerial: '운전면허 일련번호', driverLicenseAuthority: '운전면허 발급기관',
+  legalRepName: '대표 법정대리인 성명', legalRepRelation: '대표 법정대리인 관계', legalRepPhone: '대표 법정대리인 연락처',
+  job: '피보험자 직업', workplace: '피보험자 직장명',
+  relationToInsured: '피보험자와의 관계(체크값)', relationToInsuredText: '피보험자와의 관계(텍스트)',
+  residenceDomestic: '국내거주(V)', residenceForeign: '비거주(V)', residenceCountry: '거주국가',
+  email: '이메일', fax: '팩스번호',
+  diseaseName: '청구병명', diseaseCode: '병명코드', accidentDate: '사고발생일',
+  accidentYear: '사고발생연도', accidentMonth: '사고발생월', accidentDay: '사고발생일(일)',
+  medicalTarget: '의료수급권자 대상(V)', medicalNonTarget: '의료수급권자 비대상(V)',
+  compInfoPolicyholder: '보상안내 계약자(V)', compInfoInsured: '보상안내 피보험자(V)', compInfoOther: '보상안내 기타(V)',
+  compInfoName: '보상안내 이름', compInfoPhone: '보상안내 연락처',
+  claimTypeInjury: '청구-상해(V)', claimTypeDisease: '청구-질병(V)', claimTypeTraffic: '청구-교통(V)', claimTypeOther: '청구-기타(V)',
+  coverageInpatient: '담보-입원(V)', coverageOutpatient: '담보-통원(V)', coverageSurgery: '담보-수술(V)', coverageDiagnosis: '담보-진단(V)', coverageDeath: '담보-사망(V)', coverageDisability: '담보-장애(V)', coverageCost: '담보-비용(V)',
+  legalRepMomName: '엄마 성명', legalRepMomPhone: '엄마 연락처', legalRepDadName: '아빠 성명', legalRepDadPhone: '아빠 연락처',
+  beneficiaryNationality: '수익자 국적',
+  today_year: '작성일(연)', today_month: '작성일(월)', today_day: '작성일(일)', insuredSignature: '피보험자 서명', policyholderSignature: '계약자 서명', check: '체크(V)', strike: '삭제선', custom: '사용자 지정'
+};
+
+
+function initFieldSelect() {
+  const select = document.getElementById('field-select');
+  if (!select) return;
+  select.innerHTML = '';
+  // Categorize or just list them
+  const groups = {
+    '공통 / 인적사항': ['name', 'rrn', 'phone', 'address', 'job', 'workplace', 'today_year', 'today_month', 'today_day'],
+    '계약자 / 피보험자': ['policyholderName', 'policyholderRRN', 'policyholderPhone', 'policyholderAddress', 'insuredPhone', 'insuredAddress', 'relationToInsured', 'relationToInsuredText', 'residenceDomestic', 'residenceForeign', 'residenceCountry'],
+    '법정대리인': ['legalRepName', 'legalRepRelation', 'legalRepPhone', 'legalRepMomName', 'legalRepMomPhone', 'legalRepDadName', 'legalRepDadPhone'],
+    '보상 안내 / 수급권': ['medicalTarget', 'medicalNonTarget', 'compInfoPolicyholder', 'compInfoInsured', 'compInfoOther', 'compInfoName', 'compInfoPhone', 'email', 'fax'],
+    '청구 / 진단 사항': ['claimTypeInjury', 'claimTypeDisease', 'claimTypeTraffic', 'claimTypeOther', 'accidentDate', 'accidentYear', 'accidentMonth', 'accidentDay', 'diseaseName', 'diseaseCode', 'diagnosis', 'claimAmount'],
+    '청구 담보': ['coverageInpatient', 'coverageOutpatient', 'coverageSurgery', 'coverageDiagnosis', 'coverageDeath', 'coverageDisability', 'coverageCost'],
+    '계좌 / 신분증': ['bankName', 'bankAccount', 'idIssueYear', 'idIssueMonth', 'idIssueDay', 'idIssueAuthority', 'driverLicenseNumber', 'driverLicenseSerial', 'driverLicenseAuthority'],
+    '서명 및 특수기호': ['insuredSignature', 'policyholderSignature', 'check', 'strike', 'custom']
+  };
+  
+  const addedKeys = new Set();
+  
+  for (const [groupName, keys] of Object.entries(groups)) {
+    const optgroup = document.createElement('optgroup');
+    optgroup.label = groupName;
+    for (const key of keys) {
+      if (FIELD_LABELS[key]) {
+        const option = document.createElement('option');
+        option.value = key;
+        option.textContent = FIELD_LABELS[key];
+        optgroup.appendChild(option);
+        addedKeys.add(key);
+      }
+    }
+    select.appendChild(optgroup);
+  }
+  
+  // Add any leftover fields
+  const leftoverGroup = document.createElement('optgroup');
+  leftoverGroup.label = '기타';
+  let hasLeftovers = false;
+  for (const key of Object.keys(FIELD_LABELS)) {
+    if (!addedKeys.has(key) && key !== 'custom') {
+      const option = document.createElement('option');
+      option.value = key;
+      option.textContent = FIELD_LABELS[key];
+      leftoverGroup.appendChild(option);
+      hasLeftovers = true;
+    }
+  }
+  if (hasLeftovers) select.appendChild(leftoverGroup);
+}
+// Run it when DOM is ready
+document.addEventListener('DOMContentLoaded', initFieldSelect);
+
+function getDisplayText(f, baseText) {
+  if (baseText == null) return '';
+  baseText = String(baseText);
+  if (!f.range) return baseText;
+  const parts = f.range.split(',');
+  if (parts.length >= 2) {
+    const start = parseInt(parts[0].trim(), 10) - 1;
+    const len = parseInt(parts[1].trim(), 10);
+    if (!isNaN(start) && !isNaN(len) && start >= 0) {
+      return baseText.substr(start, len);
+    }
+  }
+  return baseText;
+}
+
+let templates = [];
+let activeTemplateIds = [];
+let currentBlobUrl = null;
+
+let editingTemplateId = null;
+let editingFields = [];
+let selectedFieldIds = [];
+let dragStartPositions = [];
+
+window.lastUsedFontSize = 11;
+window.lastUsedStrikeWidth = 50;
+window.lastUsedLetterSpacing = 0;
+let pdfScale = 1.2;
+let editorCurrentPage = 1;
+let editorTotalPages = 1;
+
+const FORM_FIELDS = ['name', 'rrn', 'insuredPhone', 'insuredAddress', 'job', 'workplace',
+  'policyholderName', 'policyholderRRN', 'policyholderPhone', 'policyholderAddress',
+  'relationToInsured', 'relationToInsuredText',
+  'residenceDomestic', 'residenceForeign', 'residenceCountry',
+  'email', 'fax',
+  'idIssueYear', 'idIssueMonth', 'idIssueDay', 'idIssueAuthority', 'driverLicenseNumber', 'driverLicenseSerial',
+  'bankName', 'bankAccount', 
+  'diagnosis', 'claimAmount', 'diseaseName', 'diseaseCode', 'accidentDate',
+  'accidentYear', 'accidentMonth', 'accidentDay',
+  'medicalTarget', 'medicalNonTarget',
+  'compInfoPolicyholder', 'compInfoInsured', 'compInfoOther', 'compInfoName', 'compInfoPhone',
+  'claimTypeInjury', 'claimTypeDisease', 'claimTypeTraffic', 'claimTypeOther',
+  'coverageInpatient', 'coverageOutpatient', 'coverageSurgery', 'coverageDiagnosis', 'coverageDeath', 'coverageDisability', 'coverageCost',
+  'legalRepMomName', 'legalRepMomPhone', 'legalRepDadName', 'legalRepDadPhone',
+  'legalRepName', 'legalRepRelation', 'legalRepPhone',
+  'beneficiaryNationality', 'insuredSignature', 'policyholderSignature'];
+
+function calculateAgeFromRRN(rrn) {
+  if (!rrn) return null;
+  const clean = rrn.replace(/[^0-9]/g, '');
+  if (clean.length < 7) return null;
+  const yy = parseInt(clean.substring(0, 2), 10);
+  const mm = parseInt(clean.substring(2, 4), 10) - 1;
+  const dd = parseInt(clean.substring(4, 6), 10);
+  const g = parseInt(clean.substring(6, 7), 10);
+
+  let yearPrefix = 1900;
+  if ([3, 4, 7, 8].includes(g)) yearPrefix = 2000;
+  else if ([9, 0].includes(g)) yearPrefix = 1800;
+  
+  const birthDate = new Date(yearPrefix + yy, mm, dd);
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  if (today.getMonth() < mm || (today.getMonth() === mm && today.getDate() < dd)) {
+    age--;
+  }
+  return age;
+}
+
+function getRealDataValue(f) {
+  const data = JSON.parse(localStorage.getItem('agc_formdata') || '{}');
+  let val = data[f.type];
+  
+  if (f.type === 'check') return 'V';
+  if (f.type === 'today_year') return new Date().getFullYear().toString();
+  if (f.type === 'today_month') return String(new Date().getMonth() + 1).padStart(2, '0');
+  if (f.type === 'today_day') return String(new Date().getDate()).padStart(2, '0');
+  if (f.type === 'custom') return f.value || '텍스트';
+  if (f.type === 'strike') return '';
+  if (f.type === 'relationToInsured') return data.relationToInsuredRadio || 'V';
+  
+  // Update compInfo in real-time if names changed
+  if (f.type === 'compInfoName' && data.compInfoRadioVal === '계약자') val = data.policyholderName;
+  if (f.type === 'compInfoPhone' && data.compInfoRadioVal === '계약자') val = data.policyholderPhone;
+  if (f.type === 'compInfoName' && data.compInfoRadioVal === '피보험자') val = data.name;
+  if (f.type === 'compInfoPhone' && data.compInfoRadioVal === '피보험자') val = data.insuredPhone;
+  
+  if (data.rrn && calculateAgeFromRRN(data.rrn) < 14) {
+    if (f.type === 'policyholderName' && data.legalRepName) val = data.legalRepName;
+    if (f.type === 'policyholderRRN' && data.legalRepRRN) val = data.legalRepRRN;
+  }
+  
+  val = val || DUMMY_DATA[f.type] || '텍스트';
+  return getDisplayText(f, val);
+}
+
+
+function handleInsuredInput() {
+  const rrnVal = document.getElementById('cus-rrn').value;
+  const age = calculateAgeFromRRN(rrnVal);
+  const cb14 = document.getElementById('cus-isUnder14');
+  
+  if (age !== null) {
+    const isUnder = age < 14;
+    if (cb14.checked !== isUnder) {
+      cb14.checked = isUnder;
+      toggleUnder14();
+    }
+  }
+
+  if (document.getElementById('cus-sameAsInsured').checked) {
+    document.getElementById('cus-policyholderName').value = document.getElementById('cus-name').value;
+    document.getElementById('cus-policyholderRRN').value = document.getElementById('cus-rrn').value;
+    document.getElementById('cus-policyholderPhone').value = document.getElementById('cus-insuredPhone').value;
+    document.getElementById('cus-policyholderAddress').value = document.getElementById('cus-insuredAddress').value;
+    syncPolicyholderToLegalRep();
+  }
+  saveFormData();
+}
+
+function syncPolicyholderToLegalRep() {
+  if (document.getElementById('cus-isUnder14').checked) {
+    document.getElementById('cus-legalRepName').value = document.getElementById('cus-policyholderName').value;
+  }
+}
+
+
+function toggleSameAsInsured() {
+  const isSame = document.getElementById('cus-sameAsInsured').checked;
+  const ids = ['cus-policyholderName', 'cus-policyholderRRN', 'cus-policyholderPhone', 'cus-policyholderAddress'];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    el.readOnly = isSame;
+    el.style.opacity = isSame ? '0.6' : '1';
+  });
+  if (isSame) handleInsuredInput();
+  saveFormData();
+}
+
+window.execDaumPostcode = function(targetId) {
+  new daum.Postcode({
+    oncomplete: function(data) {
+      let addr = '';
+      if (data.userSelectedType === 'R') {
+        addr = data.roadAddress;
+      } else {
+        addr = data.jibunAddress;
+      }
+      const el = document.getElementById(targetId);
+      el.value = addr;
+      // trigger oninput manually if needed, or save directly
+      saveFormData();
+    }
+  }).open();
+};
+
+
+function handleSignatureUpload(e, key) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(evt) {
+    const base64 = evt.target.result;
+    const data = JSON.parse(localStorage.getItem('agc_formdata') || '{}');
+    data[key] = base64;
+    localStorage.setItem('agc_formdata', JSON.stringify(data));
+    updateSignaturePreview(key, base64);
+    
+    // Update preview canvas if there's a signature rendered
+    if (typeof generateAndPreview === 'function' && templates.some(t => t.id === editingTemplateId)) {
+       // Wait, instead of regenerating everything, we can just find the img and update its src
+       document.querySelectorAll('.draggable-field img[data-sig="' + key + '"]').forEach(img => {
+         img.src = base64;
+       });
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+function updateSignaturePreview(key, base64) {
+  const previewId = key === 'insuredSignatureData' ? 'preview-insuredSignature' : 'preview-policyholderSignature';
+  const el = document.getElementById(previewId);
+  if (el) {
+    if (base64) {
+      el.innerHTML = '<img src="' + base64 + '" style="max-height:100%; max-width:100%; object-fit:contain;">';
+    } else {
+      el.innerHTML = '<span style="font-size:0.75rem; color: #aaa;">미등록</span>';
+    }
+  }
+}
+
+function loadFormData() {
+  const data = JSON.parse(localStorage.getItem('agc_formdata') || '{}');
+  
+  const setVal = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
+  const setChk = (id, val) => { const el = document.getElementById(id); if (el) el.checked = (val === 'V'); };
+  
+  setVal('cus-name', data.name);
+  setVal('cus-rrn', data.rrn);
+  setVal('cus-insuredPhone', data.insuredPhone);
+  setVal('cus-insuredAddress', data.insuredAddress);
+  setVal('cus-job', data.job);
+  setVal('cus-workplace', data.workplace);
+  setVal('cus-policyholderName', data.policyholderName);
+  setVal('cus-policyholderRRN', data.policyholderRRN);
+  setVal('cus-policyholderPhone', data.policyholderPhone);
+  setVal('cus-policyholderAddress', data.policyholderAddress);
+  
+  if (data.relationToInsuredRadio) {
+    const rs = document.getElementsByName('relationToInsured');
+    for (const r of rs) { r.checked = (r.value === data.relationToInsuredRadio); }
+    if (data.relationToInsuredRadio === '기타') {
+      const otherTxt = document.getElementById('cus-relationOtherText');
+      if (otherTxt) {
+        otherTxt.style.display = 'inline-block';
+        setVal('cus-relationOtherText', data.relationToInsuredText);
+      }
+    }
+  }
+  
+  if (data.residenceDomestic || data.residenceForeign) {
+    const val = data.residenceDomestic === 'V' ? '거주' : '비거주';
+    const rs = document.getElementsByName('residenceDomestic');
+    for (const r of rs) { r.checked = (r.value === val); }
+    if (val === '비거주') {
+      const resCountry = document.getElementById('cus-residenceCountry');
+      if (resCountry) {
+        resCountry.style.display = 'inline-block';
+        setVal('cus-residenceCountry', data.residenceCountry);
+      }
+    }
+  }
+
+  setVal('cus-email', data.email);
+  setVal('cus-fax', data.fax);
+  
+  setVal('cus-diseaseName', data.diseaseName);
+  setVal('cus-diseaseCode', data.diseaseCode);
+  setVal('cus-accidentDate', data.accidentDate);
+  
+  if (data.medicalTarget || data.medicalNonTarget) {
+    const val = data.medicalTarget === 'V' ? '대상' : '비대상';
+    const rs = document.getElementsByName('medicalTargetRadio');
+    for (const r of rs) { r.checked = (r.value === val); }
+  }
+
+  if (data.compInfoRadioVal) {
+    const rs = document.getElementsByName('compInfoRadio');
+    for (const r of rs) { r.checked = (r.value === data.compInfoRadioVal); }
+    if (typeof toggleCompInfo === 'function') toggleCompInfo();
+  }
+  setVal('cus-compInfoName', data.compInfoName);
+  setVal('cus-compInfoPhone', data.compInfoPhone);
+
+  setChk('cus-claimTypeInjury', data.claimTypeInjury);
+  setChk('cus-claimTypeDisease', data.claimTypeDisease);
+  setChk('cus-claimTypeTraffic', data.claimTypeTraffic);
+  setChk('cus-claimTypeOther', data.claimTypeOther);
+  
+  setChk('cus-coverageInpatient', data.coverageInpatient);
+  setChk('cus-coverageOutpatient', data.coverageOutpatient);
+  setChk('cus-coverageSurgery', data.coverageSurgery);
+  setChk('cus-coverageDiagnosis', data.coverageDiagnosis);
+  setChk('cus-coverageDeath', data.coverageDeath);
+  setChk('cus-coverageDisability', data.coverageDisability);
+  setChk('cus-coverageCost', data.coverageCost);
+
+  setVal('cus-legalRepMomName', data.legalRepMomName);
+  setVal('cus-legalRepMomPhone', data.legalRepMomPhone);
+  setVal('cus-legalRepDadName', data.legalRepDadName);
+  setVal('cus-legalRepDadPhone', data.legalRepDadPhone);
+  
+  if (data.legalRepRadioVal === 'dad') {
+    const dadEl = document.getElementById('cus-repDad');
+    if(dadEl) dadEl.checked = true;
+  } else {
+    const momEl = document.getElementById('cus-repMom');
+    if(momEl) momEl.checked = true;
+  }
+  if (typeof toggleLegalRep === 'function') toggleLegalRep();
+
+  setVal('cus-beneficiaryNationality', data.beneficiaryNationality);
+  
+  setVal('cus-idIssueYear', data.idIssueYear);
+  setVal('cus-idIssueMonth', data.idIssueMonth);
+  setVal('cus-idIssueDay', data.idIssueDay);
+  setVal('cus-idIssueAuthority', data.idIssueAuthority);
+  setVal('cus-driverLicenseAuthority', data.driverLicenseAuthority);
+  setVal('cus-driverLicenseNumber', data.driverLicenseNumber);
+  setVal('cus-driverLicenseSerial', data.driverLicenseSerial);
+  setVal('cus-bankName', data.bankName);
+  setVal('cus-bankAccount', data.bankAccount);
+  setVal('cus-diagnosis', data.diagnosis);
+  setVal('cus-claimAmount', data.claimAmount);
+
+  
+  updateSignaturePreview('insuredSignatureData', data.insuredSignatureData);
+  updateSignaturePreview('policyholderSignatureData', data.policyholderSignatureData);
+  if (data.sameAsInsured) {
+    const cb = document.getElementById('cus-sameAsInsured');
+    if (cb) {
+      cb.checked = true;
+      if (typeof toggleSameAsInsured === 'function') toggleSameAsInsured();
+    }
+  }
+}
+
+
+function toggleLegalRep() {
+  saveFormData();
+}
+
+function toggleRelation() {
+  const relationRadios = document.getElementsByName('relationToInsured');
+  const otherText = document.getElementById('cus-relationOtherText');
+  let isOther = false;
+  for (const r of relationRadios) {
+    if (r.checked && r.value === '기타') isOther = true;
+  }
+  otherText.style.display = isOther ? 'inline-block' : 'none';
+  saveFormData();
+}
+
+function toggleResidence() {
+  const domRadios = document.getElementsByName('residenceDomestic');
+  const countryText = document.getElementById('cus-residenceCountry');
+  let isForeign = false;
+  for (const r of domRadios) {
+    if (r.checked && r.value === '비거주') isForeign = true;
+  }
+  countryText.style.display = isForeign ? 'inline-block' : 'none';
+  saveFormData();
+}
+
+function toggleCompInfo() {
+  const compRadios = document.getElementsByName('compInfoRadio');
+  const nameInput = document.getElementById('cus-compInfoName');
+  const phoneInput = document.getElementById('cus-compInfoPhone');
+  
+  let checkedVal = '계약자';
+  for (const r of compRadios) {
+    if (r.checked) checkedVal = r.value;
+  }
+  
+  if (checkedVal === '계약자') {
+    nameInput.value = document.getElementById('cus-policyholderName').value;
+    phoneInput.value = document.getElementById('cus-policyholderPhone').value;
+    nameInput.disabled = true;
+    phoneInput.disabled = true;
+  } else if (checkedVal === '피보험자') {
+    nameInput.value = document.getElementById('cus-name').value;
+    phoneInput.value = document.getElementById('cus-insuredPhone').value;
+    nameInput.disabled = true;
+    phoneInput.disabled = true;
+  } else {
+    nameInput.value = '';
+    phoneInput.value = '';
+    nameInput.disabled = false;
+    phoneInput.disabled = false;
+  }
+  saveFormData();
+}
+
+function saveFormData() {
+  const getVal = (id) => { const el = document.getElementById(id); return el ? el.value : ''; };
+  const getChk = (id) => { const el = document.getElementById(id); return (el && el.checked) ? 'V' : ''; };
+
+  let relationVal = '부';
+  for (const r of document.getElementsByName('relationToInsured')) {
+    if (r.checked) relationVal = r.value;
+  }
+  if (relationVal === '기타') relationVal = getVal('cus-relationOtherText');
+
+  let residenceDom = '거주';
+  for (const r of document.getElementsByName('residenceDomestic')) {
+    if (r.checked) residenceDom = r.value;
+  }
+
+  let medicalTarget = '대상';
+  for (const r of document.getElementsByName('medicalTargetRadio')) {
+    if (r.checked) medicalTarget = r.value;
+  }
+
+  let compInfo = '계약자';
+  for (const r of document.getElementsByName('compInfoRadio')) {
+    if (r.checked) compInfo = r.value;
+  }
+
+  const repMomEl = document.getElementById('cus-repMom');
+  let repMom = repMomEl ? repMomEl.checked : true;
+  
+  const accDate = getVal('cus-accidentDate'); // YYYY-MM-DD
+  let accYear = '', accMonth = '', accDay = '';
+  if (accDate) {
+    const parts = accDate.split('-');
+    if (parts.length === 3) {
+      accYear = parts[0]; accMonth = parts[1]; accDay = parts[2];
+    }
+  }
+
+  const data = {
+    name: getVal('cus-name'),
+    rrn: getVal('cus-rrn'),
+    insuredPhone: getVal('cus-insuredPhone'),
+    insuredAddress: getVal('cus-insuredAddress'),
+    job: getVal('cus-job'),
+    workplace: getVal('cus-workplace'),
+    policyholderName: getVal('cus-policyholderName'),
+    policyholderRRN: getVal('cus-policyholderRRN'),
+    policyholderPhone: getVal('cus-policyholderPhone'),
+    policyholderAddress: getVal('cus-policyholderAddress'),
+    
+    relationToInsuredText: relationVal,
+    relationToInsuredRadio: Array.from(document.getElementsByName('relationToInsured')).find(r => r.checked)?.value || '부',
+    
+    residenceDomestic: residenceDom === '거주' ? 'V' : '',
+    residenceForeign: residenceDom === '비거주' ? 'V' : '',
+    residenceCountry: getVal('cus-residenceCountry'),
+    
+    email: getVal('cus-email'),
+    fax: getVal('cus-fax'),
+    
+    diseaseName: getVal('cus-diseaseName'),
+    diseaseCode: getVal('cus-diseaseCode'),
+    accidentDate: accDate,
+    accidentYear: accYear,
+    accidentMonth: accMonth,
+    accidentDay: accDay,
+    
+    medicalTarget: medicalTarget === '대상' ? 'V' : '',
+    medicalNonTarget: medicalTarget === '비대상' ? 'V' : '',
+    
+    compInfoPolicyholder: compInfo === '계약자' ? 'V' : '',
+    compInfoInsured: compInfo === '피보험자' ? 'V' : '',
+    compInfoOther: compInfo === '기타' ? 'V' : '',
+    compInfoName: getVal('cus-compInfoName'),
+    compInfoPhone: getVal('cus-compInfoPhone'),
+    compInfoRadioVal: compInfo,
+    
+    claimTypeInjury: getChk('cus-claimTypeInjury'),
+    claimTypeDisease: getChk('cus-claimTypeDisease'),
+    claimTypeTraffic: getChk('cus-claimTypeTraffic'),
+    claimTypeOther: getChk('cus-claimTypeOther'),
+    
+    coverageInpatient: getChk('cus-coverageInpatient'),
+    coverageOutpatient: getChk('cus-coverageOutpatient'),
+    coverageSurgery: getChk('cus-coverageSurgery'),
+    coverageDiagnosis: getChk('cus-coverageDiagnosis'),
+    coverageDeath: getChk('cus-coverageDeath'),
+    coverageDisability: getChk('cus-coverageDisability'),
+    coverageCost: getChk('cus-coverageCost'),
+    
+    legalRepMomName: getVal('cus-legalRepMomName'),
+    legalRepMomPhone: getVal('cus-legalRepMomPhone'),
+    legalRepDadName: getVal('cus-legalRepDadName'),
+    legalRepDadPhone: getVal('cus-legalRepDadPhone'),
+    legalRepRadioVal: repMom ? 'mom' : 'dad',
+    
+    legalRepName: repMom ? getVal('cus-legalRepMomName') : getVal('cus-legalRepDadName'),
+    legalRepPhone: repMom ? getVal('cus-legalRepMomPhone') : getVal('cus-legalRepDadPhone'),
+    legalRepRelation: repMom ? '모' : '부',
+    
+    beneficiaryNationality: getVal('cus-beneficiaryNationality'),
+    
+    idIssueYear: getVal('cus-idIssueYear'),
+    idIssueMonth: getVal('cus-idIssueMonth'),
+    idIssueDay: getVal('cus-idIssueDay'),
+    idIssueAuthority: getVal('cus-idIssueAuthority'),
+    driverLicenseAuthority: getVal('cus-driverLicenseAuthority'),
+    driverLicenseNumber: getVal('cus-driverLicenseNumber'),
+    driverLicenseSerial: getVal('cus-driverLicenseSerial'),
+    
+    bankName: getVal('cus-bankName'),
+    bankAccount: getVal('cus-bankAccount'),
+    diagnosis: getVal('cus-diagnosis'),
+    claimAmount: getVal('cus-claimAmount'),
+  };
+  
+  const cb = document.getElementById('cus-sameAsInsured');
+  if (cb) data.sameAsInsured = cb.checked;
+  
+  localStorage.setItem('agc_formdata', JSON.stringify(data));
+}
+
+
+document.addEventListener('DOMContentLoaded', async () => {
+  loadFormData();
+  
+  let legacy = localStorage.getItem('agc_templates');
+  if (legacy) {
+    await localforage.setItem('agc_templates', JSON.parse(legacy));
+    localStorage.removeItem('agc_templates');
+  }
+  
+  templates = (await localforage.getItem('agc_templates')) || [];
+  
+  if (typeof PRELOADED_TEMPLATES !== 'undefined') {
+    let changed = false;
+    for (const p of PRELOADED_TEMPLATES) {
+      const existing = templates.find(t => t.name === p.name);
+      if (!existing) {
+        templates.push({ id: 'tpl_' + Date.now() + Math.random(), name: p.name, pdfUrl: p.base64, fields: [] });
+        changed = true;
+      }
+    }
+    if (changed) await localforage.setItem('agc_templates', templates);
+  }
+
+  activeTemplateIds = JSON.parse(localStorage.getItem('agc_active_tpls') || '[]');
+  renderActiveTemplates();
+  if (activeTemplateIds.length > 0) generateAndPreview();
+});
+
+function handleFileUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const b64 = ev.target.result;
+    const newTpl = {
+      id: 'tpl_' + Date.now(),
+      name: file.name.replace('.pdf', ''),
+      pdfUrl: b64,
+      fields: []
+    };
+    templates.push(newTpl);
+    localforage.setItem('agc_templates', templates).catch(console.error);
+    renderModalTemplates();
+    selectEditTemplate(newTpl.id);
+  };
+  reader.readAsDataURL(file);
+  e.target.value = '';
+}
+
+async function handleFolderUpload(e) {
+  const files = Array.from(e.target.files).filter(f => f.name.toLowerCase().endsWith('.pdf'));
+  if (files.length === 0) return;
+  const readFileAsBase64 = (file) => new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.readAsDataURL(file);
+  });
+  for (const file of files) {
+    const base64 = await readFileAsBase64(file);
+    const name = file.name.replace(/\.[^/.]+$/, "");
+    if (!templates.find(t => t.name === name)) {
+      templates.push({ id: 'tpl_' + Date.now() + Math.random(), name: name, pdfUrl: base64, fields: [] });
+    }
+  }
+  await localforage.setItem('agc_templates', templates);
+  renderModalTemplates();
+  renderActiveTemplates();
+  alert('양식 동기화 완료.');
+  e.target.value = '';
+}
+
+function getCompanyName(filename) {
+  return filename.replace(/_?청구(서|양식)?\.pdf$|\.pdf$/i, '').trim();
+}
+
+function renderActiveTemplates() {
+  const lifeContainer = document.getElementById('life-template-list');
+  const nonlifeContainer = document.getElementById('nonlife-template-list');
+  
+  const lifeTpls = [];
+  const nonlifeTpls = [];
+  
+  templates.forEach(t => {
+    const cat = t.category || (t.name.includes('생명') ? 'life' : 'nonlife');
+    if (cat === 'life') lifeTpls.push(t);
+    else nonlifeTpls.push(t);
+  });
+  
+  const renderList = (list) => list.map(t => {
+    const compName = t.displayName || getCompanyName(t.name);
+    return `
+      <div class="tpl-item ${activeTemplateIds.includes(t.id) ? 'active' : ''}" 
+           draggable="true"
+           ondragstart="handleTplDragStart(event, '${t.id}')"
+           ondragover="handleTplDragOver(event)"
+           ondragenter="handleTplDragEnter(event)"
+           ondragleave="handleTplDragLeave(event)"
+           ondrop="handleTplDrop(event, '${t.id}')"
+           onclick="selectActiveTemplate('${t.id}')">
+        <div class="flex items-center gap-2" style="pointer-events:none;"><i class="ri-file-pdf-line"></i> ${compName}</div>
+        ${activeTemplateIds.includes(t.id) ? '<i class="ri-checkbox-circle-fill" style="color:var(--color-primary); pointer-events:none;"></i>' : ''}
+      </div>
+    `;
+  }).join('');
+  
+  if (lifeContainer) lifeContainer.innerHTML = renderList(lifeTpls);
+  if (nonlifeContainer) nonlifeContainer.innerHTML = renderList(nonlifeTpls);
+}
+
+function selectActiveTemplate(id) {
+  if (activeTemplateIds.includes(id)) activeTemplateIds = activeTemplateIds.filter(x => x !== id);
+  else activeTemplateIds.push(id);
+  localStorage.setItem('agc_active_tpls', JSON.stringify(activeTemplateIds));
+  renderActiveTemplates();
+  generateAndPreview();
+  if (isPreviewNudgeOpen) populateNudgeFields();
+}
+
+let draggedTplId = null;
+
+window.handleTplDragStart = function(e, id) {
+  draggedTplId = id;
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', id);
+  e.target.style.opacity = '0.5';
+};
+
+window.handleTplDragOver = function(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+};
+
+window.handleTplDragEnter = function(e) {
+  e.preventDefault();
+  if (e.currentTarget.classList.contains('tpl-item')) {
+    e.currentTarget.style.borderTop = '2px solid var(--color-primary)';
+  }
+};
+
+window.handleTplDragLeave = function(e) {
+  if (e.currentTarget.classList.contains('tpl-item')) {
+    e.currentTarget.style.borderTop = '';
+  }
+};
+
+window.handleTplDrop = async function(e, targetId) {
+  e.preventDefault();
+  if (e.currentTarget.classList.contains('tpl-item')) {
+    e.currentTarget.style.borderTop = '';
+  }
+  if (!draggedTplId || draggedTplId === targetId) return;
+  
+  const fromIndex = templates.findIndex(t => t.id === draggedTplId);
+  const toIndex = templates.findIndex(t => t.id === targetId);
+  
+  if (fromIndex >= 0 && toIndex >= 0) {
+    const [moved] = templates.splice(fromIndex, 1);
+    
+    // Auto category switch if dragging across columns
+    const targetCat = templates[toIndex].category || (templates[toIndex].name.includes('생명') ? 'life' : 'nonlife');
+    moved.category = targetCat;
+    
+    templates.splice(toIndex, 0, moved);
+    await localforage.setItem('agc_templates', templates);
+    renderActiveTemplates();
+  }
+};
+
+document.addEventListener('dragend', (e) => {
+  if (e.target.classList && e.target.classList.contains('tpl-item')) {
+    e.target.style.opacity = '1';
+    draggedTplId = null;
+  }
+});
+
+function openTemplateManager(id = null) {
+  document.getElementById('tpl-modal').classList.add('active');
+  renderModalTemplates();
+  if (id) {
+    selectEditTemplate(id);
+  } else if (templates.length > 0) {
+    selectEditTemplate(templates[0].id);
+  }
+}
+
+function closeTemplateManager() {
+  const tpl = templates.find(t => t.id === editingTemplateId);
+  if (tpl) {
+    tpl.fields = JSON.parse(JSON.stringify(editingFields));
+    localforage.setItem('agc_templates', templates).catch(console.error);
+  }
+  document.getElementById('tpl-modal').classList.remove('active');
+  renderActiveTemplates();
+  generateAndPreview();
+}
+
+function renderModalTemplates() {
+  const container = document.getElementById('modal-tpl-list');
+  container.innerHTML = templates.map(t => {
+    const dispName = t.displayName || getCompanyName(t.name);
+    return `
+    <div class="tpl-item ${t.id === editingTemplateId ? 'active' : ''}" onclick="selectEditTemplate('${t.id}')">
+      <div style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:0.875rem;">${dispName}</div>
+      <div style="display:flex; gap:0.5rem; align-items:center;">
+        <i class="ri-edit-line delete-field" style="color:var(--color-primary);" onclick="editTemplateInfo(event, '${t.id}')" title="이름/위치 수정"></i>
+        <i class="ri-delete-bin-line delete-field" onclick="event.stopPropagation(); deleteTemplate('${t.id}')" title="삭제"></i>
+      </div>
+    </div>
+  `}).join('');
+}
+
+async function editTemplateInfo(e, id) {
+  e.stopPropagation();
+  const t = templates.find(x => x.id === id);
+  if (!t) return;
+  
+  const currentName = t.displayName || getCompanyName(t.name);
+  const currentCat = t.category || (t.name.includes('생명') ? 'life' : 'nonlife');
+  
+  const newName = prompt("표시할 회사명을 입력하세요:", currentName);
+  if (newName === null) return;
+  
+  const catInput = prompt("분류 위치를 선택하세요 (1: 생명보험사, 2: 손해보험사):", currentCat === 'life' ? '1' : '2');
+  if (catInput === null) return;
+  
+  const newCat = catInput.trim() === '1' ? 'life' : 'nonlife';
+  
+  t.displayName = newName.trim() || currentName;
+  t.category = newCat;
+  
+  await localforage.setItem('agc_templates', templates);
+  renderModalTemplates();
+  renderActiveTemplates();
+}
+
+function deleteTemplate(id) {
+  templates = templates.filter(t => t.id !== id);
+  localforage.setItem('agc_templates', templates);
+  if (editingTemplateId === id) { editingTemplateId = null; clearEditor(); }
+  renderModalTemplates();
+}
+
+async function selectEditTemplate(id) {
+  editingTemplateId = id;
+  renderModalTemplates();
+  const tpl = templates.find(t => t.id === id);
+  editingFields = JSON.parse(JSON.stringify(tpl.fields || []));
+  const loadingTask = pdfjsLib.getDocument({
+    url: tpl.pdfUrl,
+    cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
+    cMapPacked: true,
+    standardFontDataUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/standard_fonts/'
+  });
+  pdfDocProxy = await loadingTask.promise;
+  editorTotalPages = pdfDocProxy.numPages;
+  editorCurrentPage = 1;
+  const page1 = await pdfDocProxy.getPage(1);
+  const viewport1 = page1.getViewport({ scale: 1.0 });
+  const wrapperHeight = document.getElementById('editor-container').clientHeight;
+  if (wrapperHeight > 100) {
+    pdfScale = (wrapperHeight - 40) / viewport1.height;
+    if (pdfScale < 0.5) pdfScale = 0.5;
+  }
+  updateZoomIndicator();
+  await renderEditorPage();
+}
+
+function updateZoomIndicator() {
+  const el = document.getElementById('zoom-indicator');
+  if (el) el.innerText = Math.round(pdfScale * 100) + '%';
+}
+
+async function renderEditorPage() {
+  document.getElementById('page-indicator').textContent = `${editorCurrentPage} / ${editorTotalPages}`;
+  
+  const currentTpl = templates.find(t => t.id === editingTemplateId);
+  if (currentTpl) {
+    const excluded = currentTpl.excludedPages || [];
+    const cb = document.getElementById('exclude-page-cb');
+    if (cb) cb.checked = excluded.includes(editorCurrentPage);
+  }
+
+  const page = await pdfDocProxy.getPage(editorCurrentPage);
+  const viewport = page.getViewport({ scale: pdfScale });
+  const canvas = document.getElementById('pdf-canvas');
+  canvas.width = viewport.width;
+  canvas.height = viewport.height;
+  await page.render({ canvasContext: canvas.getContext('2d'), viewport: viewport }).promise;
+  renderDraggables();
+}
+
+window.zoomEditor = function(delta) {
+  pdfScale = Math.max(0.3, Math.min(3.0, pdfScale + delta));
+  renderEditorPage();
+};
+function prevPage() { if(editorCurrentPage > 1) { editorCurrentPage--; renderEditorPage(); } }
+function nextPage() { if(editorCurrentPage < editorTotalPages) { editorCurrentPage++; renderEditorPage(); } }
+function clearEditor() { const canvas = document.getElementById('pdf-canvas'); canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height); document.querySelectorAll('.draggable-field').forEach(el => el.remove()); }
+
+window.toggleExcludePage = function() {
+  const currentTpl = templates.find(t => t.id === editingTemplateId);
+  if (!currentTpl) return;
+  const cb = document.getElementById('exclude-page-cb');
+  if (!currentTpl.excludedPages) currentTpl.excludedPages = [];
+  if (cb.checked) {
+    if (!currentTpl.excludedPages.includes(editorCurrentPage)) {
+      currentTpl.excludedPages.push(editorCurrentPage);
+    }
+  } else {
+    currentTpl.excludedPages = currentTpl.excludedPages.filter(p => p !== editorCurrentPage);
+  }
+};
+
+window.selectField = function(id, isMulti = false) {
+  if (isMulti && id) {
+    if (selectedFieldIds.includes(id)) selectedFieldIds = selectedFieldIds.filter(x => x !== id);
+    else selectedFieldIds.push(id);
+  } else {
+    selectedFieldIds = id ? [id] : [];
+  }
+  
+  document.querySelectorAll('.draggable-field').forEach(el => {
+    const isSelected = selectedFieldIds.includes(el.dataset.id);
+    el.style.outline = isSelected ? '1px dashed #3b82f6' : 'none';
+    el.style.backgroundColor = isSelected ? 'rgba(59,130,246,0.05)' : 'transparent';
+    if (isSelected) el.classList.add('selected');
+    else el.classList.remove('selected');
+  });
+  
+  const alignToolbar = document.getElementById('alignment-toolbar');
+  if (alignToolbar) alignToolbar.style.display = selectedFieldIds.length > 1 ? 'flex' : 'none';
+  
+  if (selectedFieldIds.length > 0) {
+    const sf = editingFields.find(x => x.id === selectedFieldIds[0]);
+    if(sf) {
+      if (sf.type === 'strike') {
+        window.lastUsedStrikeWidth = sf.width || 50;
+      } else {
+        window.lastUsedFontSize = sf.fontSize || 11;
+      }
+      window.lastUsedLetterSpacing = sf.letterSpacing || 0;
+      
+      document.getElementById('selected-size-val').value = sf.type === 'strike' ? (sf.width || 50) : (sf.fontSize || 11);
+      document.getElementById('selected-spacing-val').value = sf.letterSpacing || 0;
+    }
+  } else {
+    document.getElementById('selected-size-val').value = window.lastUsedFontSize;
+    document.getElementById('selected-spacing-val').value = window.lastUsedLetterSpacing;
+  }
+};
+
+window.setSelectedSize = function(val) {
+  const size = parseInt(val, 10);
+  if (isNaN(size)) return;
+  window.lastUsedFontSize = size;
+  window.lastUsedStrikeWidth = size * 5;
+  if (selectedFieldIds.length === 0) return;
+  selectedFieldIds.forEach(id => {
+    const f = editingFields.find(x => x.id === id);
+    if (f) {
+      if (f.type === 'strike') f.width = Math.max(10, size);
+      else f.fontSize = Math.max(6, size);
+    }
+  });
+  renderDraggables();
+};
+
+window.setSelectedSpacing = function(val) {
+  const spacing = parseInt(val, 10);
+  if (isNaN(spacing)) return;
+  window.lastUsedLetterSpacing = spacing;
+  if (selectedFieldIds.length === 0) return;
+  selectedFieldIds.forEach(id => {
+    const f = editingFields.find(x => x.id === id);
+    if (f && f.type !== 'strike') f.letterSpacing = Math.max(0, spacing);
+  });
+  renderDraggables();
+};
+
+window.setAllSizes = function(val) {
+  const size = parseInt(val, 10);
+  if (isNaN(size)) return;
+  window.lastUsedFontSize = size;
+  window.lastUsedStrikeWidth = size * 5;
+  editingFields.forEach(f => {
+    if (f.type === 'strike') f.width = Math.max(10, size);
+    else f.fontSize = Math.max(6, size);
+  });
+  renderDraggables();
+};
+
+window.changeSelectedSize = function(delta) {
+  if (selectedFieldIds.length === 0) {
+    window.lastUsedFontSize = Math.max(6, window.lastUsedFontSize + delta);
+    window.lastUsedStrikeWidth = window.lastUsedFontSize * 5;
+    document.getElementById('selected-size-val').value = window.lastUsedFontSize;
+    return;
+  }
+  selectedFieldIds.forEach(id => {
+    const f = editingFields.find(x => x.id === id);
+    if (f) {
+      if (f.type === 'strike') f.width = Math.max(10, (f.width || 50) + delta * 10);
+      else f.fontSize = Math.max(6, (f.fontSize || 11) + delta);
+      
+      if (f.type === 'strike') window.lastUsedStrikeWidth = f.width;
+      else window.lastUsedFontSize = f.fontSize;
+    }
+  });
+  const firstF = editingFields.find(x => x.id === selectedFieldIds[0]);
+  if (firstF) document.getElementById('selected-size-val').value = firstF.type === 'strike' ? firstF.width : firstF.fontSize;
+  renderDraggables();
+};
+
+window.changeSelectedSpacing = function(delta) {
+  if (selectedFieldIds.length === 0) {
+    window.lastUsedLetterSpacing = Math.max(0, window.lastUsedLetterSpacing + delta);
+    document.getElementById('selected-spacing-val').value = window.lastUsedLetterSpacing;
+    return;
+  }
+  selectedFieldIds.forEach(id => {
+    const f = editingFields.find(x => x.id === id);
+    if (f && f.type !== 'strike') {
+      f.letterSpacing = Math.max(0, (f.letterSpacing || 0) + delta);
+      window.lastUsedLetterSpacing = f.letterSpacing;
+    }
+  });
+  const firstF = editingFields.find(x => x.id === selectedFieldIds[0]);
+  if (firstF) document.getElementById('selected-spacing-val').value = firstF.letterSpacing || 0;
+  renderDraggables();
+};
+
+window.changeAllSizes = function(delta) {
+  editingFields.forEach(f => {
+    if (f.type === 'strike') f.width = Math.max(10, (f.width || 50) + delta * 10);
+    else f.fontSize = Math.max(6, (f.fontSize || 11) + delta);
+  });
+  const firstText = editingFields.find(f => f.type !== 'strike');
+  if (firstText) {
+    document.getElementById('all-size-val').value = firstText.fontSize || 11;
+    window.lastUsedFontSize = firstText.fontSize || 11;
+  }
+  const strike = editingFields.find(f => f.type === 'strike');
+  if (strike) window.lastUsedStrikeWidth = strike.width || 50;
+  
+  renderDraggables();
+};
+
+window.deleteField = function(id) { 
+  editingFields = editingFields.filter(ef => ef.id !== id);
+  selectedFieldIds = selectedFieldIds.filter(x => x !== id);
+  renderDraggables(); 
+};
+
+function renderDraggables() {
+  document.querySelectorAll('.draggable-field').forEach(el => el.remove());
+  const wrapper = document.getElementById('pdf-wrapper');
+  editingFields.filter(f => (f.page || 1) === editorCurrentPage).forEach(f => {
+    const el = document.createElement('div');
+    el.className = 'draggable-field';
+    if (selectedFieldIds.includes(f.id)) {
+      el.classList.add('selected');
+    }
+    const BASE_SCALE = 1.2;
+    const renderScale = pdfScale / BASE_SCALE;
+    el.style.left = (f.x * renderScale) + 'px'; 
+    el.style.top = (f.y * renderScale) + 'px'; 
+    el.dataset.id = f.id;
+    
+    const isImage = f.type === 'insuredSignature' || f.type === 'policyholderSignature';
+    el.dataset.title = FIELD_LABELS[f.type] || f.type;
+    if (f.type === 'custom') el.dataset.title += ` (${f.value})`;
+
+    if (isImage) {
+      el.classList.add('signature-field');
+      el.style.width = ((f.width || 80) * renderScale) + 'px';
+      el.style.height = ((f.height || 40) * renderScale) + 'px';
+      el.style.resize = 'both';
+      el.style.overflow = 'visible';
+      el.style.padding = '0';
+      el.style.border = '1px dashed rgba(0,0,0,0.5)';
+      
+      const formdata = JSON.parse(localStorage.getItem('agc_formdata') || '{}');
+      const base64 = formdata[f.type + 'Data'];
+      
+      const imgWrapper = document.createElement('div');
+      imgWrapper.style.width = '100%';
+      imgWrapper.style.height = '100%';
+      imgWrapper.style.position = 'relative';
+      el.style.transform = 'rotate(' + (f.rotate || 0) + 'deg)';
+      
+      const img = document.createElement('img');
+      img.src = base64 || 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+      img.dataset.sig = f.type + 'Data';
+      img.style.width = '100%';
+      img.style.height = '100%';
+      img.style.objectFit = 'contain';
+      img.style.pointerEvents = 'none';
+      
+      imgWrapper.appendChild(img);
+      
+      const rotHandle = document.createElement('div');
+      rotHandle.className = 'rotate-handle';
+      rotHandle.innerHTML = '↻';
+      rotHandle.style.position = 'absolute';
+      rotHandle.style.top = '-20px';
+      rotHandle.style.left = '50%';
+      rotHandle.style.transform = 'translateX(-50%)';
+      rotHandle.style.cursor = 'grab';
+      rotHandle.style.background = '#fff';
+      rotHandle.style.border = '1px solid #ccc';
+      rotHandle.style.borderRadius = '50%';
+      rotHandle.style.width = '16px';
+      rotHandle.style.height = '16px';
+      rotHandle.style.display = 'flex';
+      rotHandle.style.alignItems = 'center';
+      rotHandle.style.justifyContent = 'center';
+      rotHandle.style.fontSize = '10px';
+      
+      rotHandle.addEventListener('mousedown', (e) => {
+        e.stopPropagation();
+        isRotating = true;
+        rotatingEl = el;
+        rotatingField = f;
+        const rect = el.getBoundingClientRect();
+        rotateCenter = {
+          x: rect.left + rect.width / 2,
+          y: rect.top + rect.height / 2
+        };
+      });
+      imgWrapper.appendChild(rotHandle);
+      el.appendChild(imgWrapper);
+      
+      new ResizeObserver(() => {
+        if (!isDragging) {
+           f.width = parseFloat(el.style.width) / renderScale;
+           f.height = parseFloat(el.style.height) / renderScale;
+        }
+      }).observe(el);
+      
+    } else {
+      const sizeVal = f.type === 'strike' ? (f.width || 50) : (f.fontSize || 11);
+      const spacingVal = f.letterSpacing || 0;
+      const scaledSize = sizeVal * pdfScale;
+      const scaledSpacing = spacingVal * pdfScale;
+      let textToDisplay = getRealDataValue(f);
+      const strikeWidth = (f.width || 50) * renderScale;
+      el.innerHTML = f.type === 'strike' ? `<div style="width: ${strikeWidth}px; height: 10px; border-top: 1px solid red; border-bottom: 1px solid red;"></div>` : `<div style="font-size: ${scaledSize}px; letter-spacing: ${scaledSpacing}px; white-space:nowrap;">${textToDisplay}</div>`;
+      
+      el.addEventListener('dblclick', (e) => {
+        e.stopPropagation();
+        if (['rrn', 'policyholderRRN', 'phone', 'policyholderPhone', 'insuredPhone', 'today_year', 'today_month', 'today_day', 'driverLicenseNumber'].includes(f.type)) {
+          const dummy = DUMMY_DATA[f.type];
+          const ans = prompt(`[부분 텍스트 추출 설정]\n입력된 텍스트 중 일부만 잘라서 표시합니다.\n\n원본: ${dummy}\n형식: 시작위치,글자수\n- 주민번호 앞자리(6자): 1,6\n- 주민번호 뒷자리(7자): 8,7\n- 전화번호 가운데(4자): 5,4\n- 첫번째 1자리만: 1,1\n\n현재 설정: ${f.range || '전체 표시'}`, f.range || "");
+          if (ans !== null) {
+            f.range = ans.trim();
+            renderDraggables();
+          }
+        }
+      });
+    }
+
+    const delBtn = document.createElement('div');
+    delBtn.className = 'delete-btn';
+    delBtn.innerHTML = '&times;';
+    delBtn.onmousedown = (e) => {
+      e.stopPropagation();
+      deleteField(f.id);
+    };
+    el.appendChild(delBtn);
+
+    const copyBtn = document.createElement('div');
+    copyBtn.className = 'copy-btn';
+    copyBtn.innerHTML = '<i class="ri-file-copy-line"></i>';
+    copyBtn.onmousedown = (e) => {
+      e.stopPropagation();
+      window.duplicateField(f.id);
+    };
+    el.appendChild(copyBtn);
+    
+    el.addEventListener('mousedown', (e) => {
+      e.stopPropagation();
+      if (!selectedFieldIds.includes(f.id) && !e.shiftKey) {
+        window.selectField(f.id, false);
+      } else if (e.shiftKey) {
+        window.selectField(f.id, true);
+      }
+      
+      draggedEl = el;
+      isDragging = true;
+      const parentRect = document.getElementById('pdf-wrapper').getBoundingClientRect();
+      const currentRenderScale = pdfScale / 1.2;
+      
+      dragStartPositions = selectedFieldIds.map(id => {
+        const field = editingFields.find(x => x.id === id);
+        const targetEl = id === f.id ? el : document.querySelector(`.draggable-field[data-id="${id}"]`);
+        let px = parseFloat(field.x);
+        let py = parseFloat(field.y);
+        if (isNaN(px)) px = targetEl ? (parseFloat(targetEl.style.left) / currentRenderScale || 0) : 0;
+        if (isNaN(py)) py = targetEl ? (parseFloat(targetEl.style.top) / currentRenderScale || 0) : 0;
+        return { id, x: px, y: py };
+      });
+      
+      offset.x = e.clientX - parentRect.left;
+      offset.y = e.clientY - parentRect.top;
+    });
+    
+    wrapper.appendChild(el);
+  });
+  window.selectField(selectedFieldIds.length === 1 ? selectedFieldIds[0] : (selectedFieldIds.length > 1 ? selectedFieldIds[0] : null), selectedFieldIds.length > 1);
+}
+
+function getVisibleCenterCoords() {
+  const container = document.getElementById('editor-container');
+  const pdfWrapper = document.getElementById('pdf-wrapper');
+  if (!container || !pdfWrapper) return { x: 50, y: 50 };
+  
+  const rectC = container.getBoundingClientRect();
+  const rectW = pdfWrapper.getBoundingClientRect();
+  
+  const targetPxX = (rectC.left + rectC.width / 2) - rectW.left;
+  const targetPxY = (rectC.top + rectC.height / 2) - rectW.top;
+  
+  const renderScale = pdfScale / 1.2;
+  let x = targetPxX / renderScale;
+  let y = targetPxY / renderScale;
+  
+  if (x < 10) x = 50;
+  if (y < 10) y = 50;
+  
+  x += (Math.random() - 0.5) * 10;
+  y += (Math.random() - 0.5) * 10;
+  return { x, y };
+}
+
+window.duplicateField = function(id) {
+  const original = editingFields.find(f => f.id === id);
+  if (!original) return;
+  const clone = JSON.parse(JSON.stringify(original));
+  clone.id = 'f_' + Date.now() + '_' + Math.floor(Math.random()*1000);
+  clone.x += 20;
+  clone.y += 20;
+  editingFields.push(clone);
+  renderDraggables();
+  window.selectField(clone.id, false);
+};
+
+function addField(type) { 
+  const pos = getVisibleCenterCoords();
+  const f = { id: 'f_' + Date.now(), type, page: editorCurrentPage, x: pos.x, y: pos.y };
+  if (type === 'strike') f.width = window.lastUsedStrikeWidth || 50;
+  else if (type === 'check') f.fontSize = window.lastUsedFontSize || 14;
+  else f.fontSize = window.lastUsedFontSize || 11;
+  f.letterSpacing = window.lastUsedLetterSpacing || 0;
+  editingFields.push(f); 
+  if (typeof editingTemplateId !== 'undefined' && editingTemplateId) {
+    const tpl = templates.find(t => t.id === editingTemplateId);
+    if (tpl) {
+      if (!tpl.fields) tpl.fields = [];
+      tpl.fields.push(JSON.parse(JSON.stringify(f)));
+      localforage.setItem('agc_templates', templates).catch(console.error);
+    }
+  }
+  renderDraggables(); 
+}
+function addCustomField() { 
+  const val = prompt('텍스트:'); 
+  if(val) {
+    const pos = getVisibleCenterCoords();
+    const f = { id: 'c_' + Date.now(), type: 'custom', value: val, page: editorCurrentPage, x: pos.x, y: pos.y, fontSize: window.lastUsedFontSize || 11, letterSpacing: window.lastUsedLetterSpacing || 0 };
+    editingFields.push(f); 
+    if (typeof editingTemplateId !== 'undefined' && editingTemplateId) {
+      const tpl = templates.find(t => t.id === editingTemplateId);
+      if (tpl) {
+        if (!tpl.fields) tpl.fields = [];
+        tpl.fields.push(JSON.parse(JSON.stringify(f)));
+        localforage.setItem('agc_templates', templates).catch(console.error);
+      }
+    }
+    renderDraggables(); 
+  }
+}
+
+window.autoDetectFieldsWithOCR = async function() {
+  try {
+    if (!editingTemplateId) {
+      alert("편집할 양식이 선택되지 않았습니다.");
+      return;
+    }
+    const tpl = templates.find(t => t.id === editingTemplateId);
+    if (!tpl) {
+      alert("양식 정보를 찾을 수 없습니다.");
+      return;
+    }
+    
+    const loading = document.getElementById('pdf-loading');
+    if (!loading) {
+      alert("오류: pdf-loading 엘리먼트를 찾을 수 없습니다.");
+      return;
+    }
+    
+    loading.style.display = 'flex';
+    loading.style.flexDirection = 'column';
+    loading.style.justifyContent = 'center';
+    loading.style.alignItems = 'center';
+    loading.innerHTML = '<div style="font-size:1.2rem; font-weight:bold; margin-bottom:1rem;">OCR 텍스트 분석 중...</div><div style="font-size:0.9rem;">약 5~10초 정도 소요될 수 있습니다. 잠시만 기다려주세요.</div>';
+    
+    // Allow DOM to update the loading screen before blocking thread
+    await new Promise(r => setTimeout(r, 100));
+    
+    if (!pdfDocProxy) {
+      alert("오류: PDF 문서가 로딩되지 않았습니다.");
+      loading.style.display = 'none';
+      return;
+    }
+
+    const scale = 2.0; 
+    const page = await pdfDocProxy.getPage(editorCurrentPage);
+    const viewport = page.getViewport({ scale });
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    const ctx = canvas.getContext('2d');
+    await page.render({ canvasContext: ctx, viewport }).promise;
+    
+    if (typeof Tesseract === 'undefined') {
+      alert("오류: Tesseract OCR 라이브러리가 로드되지 않았습니다. 인터넷 연결을 확인해주세요.");
+      loading.style.display = 'none';
+      return;
+    }
+
+    // Tesseract.js call with simple shortcut API
+    const ret = await Tesseract.recognize(canvas, 'kor');
+    
+    if (!ret || !ret.data || !ret.data.words) {
+      alert("오류: OCR 결과 데이터를 읽을 수 없습니다.");
+      loading.style.display = 'none';
+      return;
+    }
+
+    const words = ret.data.words;
+    
+    const keywords = {
+      '성명': 'name',
+      '이름': 'name',
+      '피보험자': 'name',
+      '계약자': 'policyholderName',
+      '주민등록': 'rrn',
+      '주민번호': 'rrn',
+      '연락처': 'insuredPhone',
+      '전화번호': 'insuredPhone',
+      '휴대폰': 'insuredPhone',
+      '계약자연락처': 'policyholderPhone',
+      '피보험자연락처': 'insuredPhone',
+      '주소': 'insuredAddress',
+      '자택': 'insuredAddress',
+      '직장': 'insuredAddress',
+      '계약자주소': 'policyholderAddress',
+      '피보험자주소': 'insuredAddress',
+      '친권자': 'legalRepName',
+      '법정대리인': 'legalRepName',
+      '대리인': 'legalRepName',
+      '관계': 'legalRepRelation',
+      '은행명': 'bankName',
+      '은행': 'bankName',
+      '계좌번호': 'bankAccount',
+      '계좌': 'bankAccount',
+      '진단명': 'diagnosis',
+      '병명': 'diagnosis',
+      '청구금액': 'claimAmount'
+    };
+    
+    let newFieldsCount = 0;
+    
+    words.forEach(word => {
+      const text = word.text.replace(/\s+/g, '');
+      for (const [kw, fType] of Object.entries(keywords)) {
+        if (text.includes(kw)) {
+          const bbox = word.bbox;
+          const px = (bbox.x1 / scale) + 30; 
+          const py = (bbox.y0 / scale);
+          
+          const isDup = editingFields.some(f => f.type === fType && Math.abs(f.x - px) < 60 && Math.abs(f.y - py) < 30);
+          if(!isDup) {
+             editingFields.push({
+               id: 'f_' + Date.now() + Math.random(),
+               type: fType,
+               page: editorCurrentPage,
+               x: px,
+               y: py
+             });
+             newFieldsCount++;
+          }
+        }
+      }
+    });
+    
+    if (newFieldsCount > 0) {
+      renderDraggables();
+      alert(`총 ${newFieldsCount}개의 필드가 자동 배치되었습니다. 마우스로 드래그하여 세부 위치를 수정해 주세요.\n\n※ 만약 필드가 엉뚱한 곳에 있다면 키워드 인식 오차일 수 있습니다.`);
+    } else {
+      alert("매칭되는 키워드(성명, 주민번호 등)를 하나도 찾지 못했습니다. 화질이 너무 낮거나 지원되지 않는 글꼴일 수 있습니다.");
+    }
+  } catch(e) {
+    console.error(e);
+    alert("OCR 분석 중 다음 오류가 발생했습니다:\n" + e.message + "\n\n인터넷 연결을 확인하시거나 잠시 후 다시 시도해주세요.");
+  } finally {
+    const loading = document.getElementById('pdf-loading');
+    if (loading) {
+      loading.style.display = 'none';
+      loading.innerHTML = 'PDF 렌더링 중...';
+    }
+  }
+};
+
+window.toggleModalFullscreen = function() {
+  const modalContent = document.querySelector('#tpl-modal .modal-content');
+  if (modalContent.classList.contains('fullscreen')) {
+    modalContent.classList.remove('fullscreen');
+    modalContent.style.width = '1200px';
+    modalContent.style.height = '85vh';
+    modalContent.style.maxWidth = '95vw';
+    modalContent.style.maxHeight = '95vh';
+    modalContent.style.margin = 'auto';
+    modalContent.style.borderRadius = '1rem';
+  } else {
+    modalContent.classList.add('fullscreen');
+    modalContent.style.width = '100vw';
+    modalContent.style.height = '100vh';
+    modalContent.style.maxWidth = '100vw';
+    modalContent.style.maxHeight = '100vh';
+    modalContent.style.margin = '0';
+    modalContent.style.borderRadius = '0';
+  }
+};
+
+window.alignFields = function(type) {
+  if (selectedFieldIds.length < 2) return;
+  const fields = selectedFieldIds.map(id => editingFields.find(f => f.id === id)).filter(Boolean);
+  if (fields.length < 2) return;
+
+  if (type === 'left') {
+    const minX = Math.min(...fields.map(f => f.x));
+    fields.forEach(f => f.x = minX);
+  } else if (type === 'right') {
+    const maxX = Math.max(...fields.map(f => f.x));
+    fields.forEach(f => f.x = maxX);
+  } else if (type === 'top') {
+    const minY = Math.min(...fields.map(f => f.y));
+    fields.forEach(f => f.y = minY);
+  } else if (type === 'bottom') {
+    const maxY = Math.max(...fields.map(f => f.y));
+    fields.forEach(f => f.y = maxY);
+  }
+  renderDraggables();
+};
+
+window.distributeFields = function(type) {
+  if (selectedFieldIds.length < 3) return;
+  const fields = selectedFieldIds.map(id => editingFields.find(f => f.id === id)).filter(Boolean);
+  
+  if (type === 'h') {
+    fields.sort((a, b) => a.x - b.x);
+    const minX = fields[0].x;
+    const maxX = fields[fields.length - 1].x;
+    const step = (maxX - minX) / (fields.length - 1);
+    fields.forEach((f, i) => { if(i>0 && i<fields.length-1) f.x = minX + step * i; });
+  } else if (type === 'v') {
+    fields.sort((a, b) => a.y - b.y);
+    const minY = fields[0].y;
+    const maxY = fields[fields.length - 1].y;
+    const step = (maxY - minY) / (fields.length - 1);
+    fields.forEach((f, i) => { if(i>0 && i<fields.length-1) f.y = minY + step * i; });
+  }
+  renderDraggables();
+};
+
+let draggedEl = null;
+let isDragging = false;
+let offset = { x: 0, y: 0 };
+
+function drawGuideLine(type, pos) {
+  const wrapper = document.getElementById('pdf-wrapper');
+  let line = document.getElementById('guide-' + type);
+  if (!line) {
+    line = document.createElement('div');
+    line.id = 'guide-' + type;
+    line.style.position = 'absolute';
+    line.style.backgroundColor = 'red';
+    line.style.pointerEvents = 'none';
+    line.style.zIndex = '9999';
+    wrapper.appendChild(line);
+  }
+  line.style.display = 'block';
+  if (type === 'h') { // Horizontal line for Y snap
+    line.style.top = pos + 'px';
+    line.style.left = '0';
+    line.style.width = '100%';
+    line.style.height = '1px';
+  } else { // Vertical line for X snap
+    line.style.left = pos + 'px';
+    line.style.top = '0';
+    line.style.height = '100%';
+    line.style.width = '1px';
+  }
+}
+
+function hideGuideLine(type) {
+  const line = document.getElementById('guide-' + type);
+  if (line) line.style.display = 'none';
+}
+
+document.addEventListener('mousemove', (e) => {
+  if (isRotating && rotatingEl) {
+    const angle = Math.atan2(e.clientY - rotateCenter.y, e.clientX - rotateCenter.x);
+    // Convert to degrees and offset by 90deg because atan2 is 0 at right, but handle is at top
+    let deg = (angle * 180 / Math.PI) + 90;
+    if (deg < 0) deg += 360;
+    // Snap to 45 deg intervals
+    if (e.shiftKey) deg = Math.round(deg / 45) * 45;
+    rotatingEl.style.transform = 'rotate(' + deg + 'deg)';
+    if (rotatingField) rotatingField.rotate = deg;
+    return;
+  }
+  if (!isDragging || !draggedEl) return;
+  const wrapper = draggedEl.parentElement;
+  if (!wrapper) return;
+  const parentRect = wrapper.getBoundingClientRect();
+  const renderScale = pdfScale / 1.2;
+  
+  const currentX = e.clientX - parentRect.left;
+  const currentY = e.clientY - parentRect.top;
+  
+  const dx = (currentX - offset.x) / renderScale;
+  const dy = (currentY - offset.y) / renderScale;
+  
+  
+  
+  dragStartPositions.forEach(p => {
+    const el = wrapper.querySelector(`.draggable-field[data-id="${p.id}"]`);
+    if (el) {
+      el.style.left = ((p.x + dx) * renderScale) + 'px';
+      el.style.top = ((p.y + dy) * renderScale) + 'px';
+    }
+  });
+});
+
+document.addEventListener('mouseup', (e) => {
+  try {
+    if (isRotating) {
+      isRotating = false;
+      rotatingEl = null;
+      rotatingField = null;
+      if (dragStartPositions[0] && dragStartPositions[0].tplId) {
+        localforage.setItem('agc_templates', templates).catch(console.error);
+      }
+    }
+    if (isDragging) {
+      const renderScale = pdfScale / 1.2;
+      const wrapper = draggedEl ? draggedEl.parentElement : document;
+      dragStartPositions.forEach(p => {
+        const el = draggedEl && draggedEl.dataset.id === p.id ? draggedEl : wrapper.querySelector(`.draggable-field[data-id="${p.id}"]`);
+        if (!el) return;
+        
+        let newX = parseFloat(el.style.left) / renderScale;
+        let newY = parseFloat(el.style.top) / renderScale;
+        if (isNaN(newX)) newX = p.x || 0;
+        if (isNaN(newY)) newY = p.y || 0;
+        
+        if (typeof editingFields !== 'undefined' && editingFields && editingFields.length > 0) {
+          const field = editingFields.find(f => f.id === p.id);
+          if (field) {
+            field.x = newX;
+            field.y = newY;
+          }
+        }
+        
+        if (p.tplId) {
+          const tpl = templates.find(t => t.id === p.tplId);
+          if (tpl) {
+            const mainField = (tpl.fields || []).find(f => f.id === p.id);
+            if (mainField) {
+              mainField.x = newX;
+              mainField.y = newY;
+            }
+          }
+        } else {
+          if (typeof editingTemplateId !== 'undefined' && editingTemplateId) {
+            const tpl = templates.find(t => t.id === editingTemplateId);
+            if (tpl) {
+              const mainField = (tpl.fields || []).find(f => f.id === p.id);
+              if (mainField) {
+                mainField.x = newX;
+                mainField.y = newY;
+              }
+            }
+          }
+        }
+      });
+      
+      localforage.setItem('agc_templates', templates).catch(console.error);
+    }
+  } catch(err) {
+    console.error(err);
+  } finally {
+    isDragging = false;
+    draggedEl = null;
+    hideGuideLine('h');
+    hideGuideLine('v');
+  }
+});
+
+function saveTemplateCoords() {
+  const tpl = templates.find(t => t.id === editingTemplateId);
+  if (tpl) {
+    tpl.fields = JSON.parse(JSON.stringify(editingFields));
+    localforage.setItem('agc_templates', templates).catch(console.error);
+    alert('저장되었습니다.');
+  }
+}
+
+async function getMergedPdfBlobUrl() {
+  if (!activeTemplateIds || activeTemplateIds.length === 0) return null;
+  
+  try {
+    saveFormData();
+    
+    const mergedPdf = await PDFLib.PDFDocument.create();
+    mergedPdf.registerFontkit(window.fontkit);
+    
+    const fontUrl = 'https://raw.githubusercontent.com/google/fonts/main/ofl/nanumgothic/NanumGothic-Regular.ttf';
+    const fontRes = await fetch(fontUrl);
+    if (!fontRes.ok) throw new Error('Font download failed');
+    const fontBytes = await fontRes.arrayBuffer();
+    const customFont = await mergedPdf.embedFont(fontBytes);
+    
+    const helveticaFont = await mergedPdf.embedFont(PDFLib.StandardFonts.Helvetica);
+    
+    for (const tplId of activeTemplateIds) {
+      const tpl = templates.find(t => t.id === tplId);
+      if (!tpl) continue;
+      
+      const base64 = tpl.pdfUrl.split(',')[1];
+      const binaryString = window.atob(base64);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
+      
+      const srcDoc = await PDFLib.PDFDocument.load(bytes.buffer);
+      
+      const pdfJsDoc = await pdfjsLib.getDocument({ data: bytes }).promise;
+      const viewports = {};
+      const rotations = {};
+      for (let i = 1; i <= pdfJsDoc.numPages; i++) {
+        const p = await pdfJsDoc.getPage(i);
+        viewports[i] = p.getViewport({ scale: 1.2 });
+        rotations[i] = p.rotate;
+      }
+      
+      const excluded = tpl.excludedPages || [];
+      const pageIndicesToCopy = srcDoc.getPageIndices().filter(idx => !excluded.includes(idx + 1));
+      if (pageIndicesToCopy.length === 0) continue;
+      
+      const copiedPages = await mergedPdf.copyPages(srcDoc, pageIndicesToCopy);
+      
+      const startIdx = mergedPdf.getPageCount();
+      copiedPages.forEach(p => mergedPdf.addPage(p));
+
+      // Patch for pdf-lib missing CJK font bug
+      try {
+        const { PDFDict, PDFName } = PDFLib;
+        const fontDicts = mergedPdf.context.enumerateIndirectObjects().filter(
+          ([ref, obj]) => obj instanceof PDFDict && obj.get(PDFName.of('Type')) === PDFName.of('Font')
+        );
+        fontDicts.forEach(([ref, dict]) => {
+          const subtype = dict.get(PDFName.of('Subtype'));
+          if (subtype === PDFName.of('CIDFontType0') || subtype === PDFName.of('CIDFontType2')) {
+            if (!dict.has(PDFName.of('CIDSystemInfo'))) {
+              dict.set(PDFName.of('CIDSystemInfo'), mergedPdf.context.obj({
+                Registry: 'Adobe',
+                Ordering: 'Identity',
+                Supplement: 0,
+              }));
+            }
+          }
+        });
+      } catch (e) {
+        console.warn('Font patch failed', e);
+      }
+      
+      const mergedPages = mergedPdf.getPages();
+      
+      (tpl.fields || []).forEach(f => {
+        let val = getRealDataValue(f);
+        let fontToUse = customFont;
+        
+        if (f.type === 'check') {
+          fontToUse = helveticaFont;
+        }
+        
+        if (!val && f.type !== 'strike') return;
+        
+        const fPage = f.page || 1;
+        if (excluded.includes(fPage)) return;
+        
+        let offset = 0;
+        for (let i = 1; i < fPage; i++) {
+          if (!excluded.includes(i)) offset++;
+        }
+        
+        const pageIndex = startIdx + offset;
+        const page = mergedPages[pageIndex];
+        if (!page) return;
+        
+        const viewport = viewports[fPage];
+        const pageRot = rotations[fPage] || 0;
+        const BASE_SCALE = 1.2;
+        
+        if (f.type === 'strike') {
+          const lineLenUi = (f.width || 50) * BASE_SCALE;
+          const [s1X, s1Y] = viewport.convertToPdfPoint(f.x, f.y - 1.2);
+          const [e1X, e1Y] = viewport.convertToPdfPoint(f.x + lineLenUi, f.y - 1.2);
+          page.drawLine({ start: { x: s1X, y: s1Y }, end: { x: e1X, y: e1Y }, thickness: 1, color: PDFLib.rgb(1, 0, 0) });
+          
+          const [s2X, s2Y] = viewport.convertToPdfPoint(f.x, f.y + 1.2);
+          const [e2X, e2Y] = viewport.convertToPdfPoint(f.x + lineLenUi, f.y + 1.2);
+          page.drawLine({ start: { x: s2X, y: s2Y }, end: { x: e2X, y: e2Y }, thickness: 1, color: PDFLib.rgb(1, 0, 0) });
+        } else {
+          const rawFontSize = f.fontSize || (f.type === 'check' ? 14 : 11);
+          const fontSize = rawFontSize;
+          
+          const uiBaselineY = f.y + (rawFontSize * 0.844);
+          const [pdfX, pdfY] = viewport.convertToPdfPoint(f.x, uiBaselineY);
+          
+          const rawLetterSpacing = f.letterSpacing || 0;
+          
+          if (rawLetterSpacing && rawLetterSpacing !== 0 && val) {
+            let cxUi = f.x;
+            for (let i = 0; i < val.length; i++) {
+              const char = val[i];
+              const [cX, cY] = viewport.convertToPdfPoint(cxUi, uiBaselineY);
+              page.drawText(char, { x: cX, y: cY, size: fontSize, font: fontToUse, color: PDFLib.rgb(0, 0, 0), rotate: PDFLib.degrees(pageRot) });
+              const cw = fontToUse.widthOfTextAtSize(char, fontSize);
+              cxUi += (cw + rawLetterSpacing) * BASE_SCALE;
+            }
+          } else {
+            page.drawText(val, {
+              x: pdfX,
+              y: pdfY,
+              size: fontSize,
+              font: fontToUse,
+              color: PDFLib.rgb(0, 0, 0),
+              rotate: PDFLib.degrees(pageRot)
+            });
+          }
+        }
+      });
+    }
+    
+    const pdfBytesOutput = await mergedPdf.save();
+    const blob = new Blob([pdfBytesOutput], { type: 'application/pdf' });
+    
+    if (currentBlobUrl) URL.revokeObjectURL(currentBlobUrl);
+    currentBlobUrl = URL.createObjectURL(blob);
+    return currentBlobUrl;
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+}
+
+async function generateAndPreview() {
+  saveFormData();
+  const container = document.getElementById('preview-container');
+  if (!activeTemplateIds || activeTemplateIds.length === 0) {
+    container.innerHTML = '<div style="display:flex; justify-content:center; align-items:center; height:100%; width:100%; color:var(--color-text-muted);">출력할 양식을 왼쪽에서 선택하세요.</div>';
+    return;
+  }
+  container.innerHTML = '<div style="margin: auto; font-size: 1.2rem; display: flex; align-items: center; gap: 0.5rem;"><i class="ri-loader-4-line ri-spin"></i> 양식 불러오는 중...</div>';
+  
+  const BASE_SCALE = 1.2;
+  const activeScale = pdfScale; // Use global pdfScale to sync with mousemove
+  const displayScale = activeScale / BASE_SCALE;
+  const elements = [];
+  
+  for (const tplId of activeTemplateIds) {
+    const tpl = templates.find(t => t.id === tplId);
+    if (!tpl) continue;
+    
+    const binaryString = atob(tpl.pdfUrl.split(',')[1]);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
+    
+    const pdfJsDoc = await pdfjsLib.getDocument({ data: bytes }).promise;
+    const excluded = tpl.excludedPages || [];
+    
+    for (let i = 1; i <= pdfJsDoc.numPages; i++) {
+      if (excluded.includes(i)) continue;
+      const page = await pdfJsDoc.getPage(i);
+      const viewport = page.getViewport({ scale: activeScale });
+      
+      const wrapper = document.createElement('div');
+      wrapper.className = 'pdf-page-wrapper';
+      wrapper.style.position = 'relative';
+      wrapper.style.marginBottom = '1rem';
+      wrapper.style.width = (viewport.width / BASE_SCALE) + 'px';
+      wrapper.style.height = (viewport.height / BASE_SCALE) + 'px';
+      wrapper.style.boxShadow = '0 4px 6px -1px rgb(0 0 0 / 0.1)';
+      wrapper.style.background = 'white';
+      
+      const canvas = document.createElement('canvas');
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      canvas.style.display = 'block';
+      canvas.style.width = (viewport.width / BASE_SCALE) + 'px';
+      canvas.style.height = (viewport.height / BASE_SCALE) + 'px';
+      wrapper.appendChild(canvas);
+      
+      const renderContext = { canvasContext: canvas.getContext('2d'), viewport: viewport };
+      await page.render(renderContext).promise;
+      
+      const fieldsOnPage = (tpl.fields || []).filter(f => (f.page || 1) === i);
+      fieldsOnPage.forEach(f => {
+        const el = document.createElement('div');
+        el.className = 'draggable-field';
+        el.style.left = (f.x * displayScale) + 'px';
+        el.style.top = (f.y * displayScale) + 'px';
+        el.dataset.tplId = tpl.id;
+        el.dataset.id = f.id;
+        
+        const sizeVal = f.type === 'strike' ? (f.width || 50) : (f.fontSize || 11);
+        const spacingVal = f.letterSpacing || 0;
+        const scaledSize = sizeVal * activeScale;
+        const scaledSpacing = spacingVal * activeScale;
+        
+        let textToDisplay = getRealDataValue(f) || '(빈 값)';
+        
+        const strikeWidth = (f.width || 50) * displayScale;
+        if (f.type === 'strike') {
+          el.innerHTML = `<div style="width: ${strikeWidth}px; height: 10px; border-top: 1px solid red; border-bottom: 1px solid red;"></div>`;
+        } else if (f.type === 'insuredSignature' || f.type === 'policyholderSignature') {
+          const formdata = JSON.parse(localStorage.getItem('agc_formdata') || '{}');
+          const base64 = formdata[f.type + 'Data'];
+          const fw = (f.width || 80) * displayScale;
+          const fh = (f.height || 40) * displayScale;
+          const deg = f.rotate || 0;
+          el.style.width = fw + 'px';
+          el.style.height = fh + 'px';
+          el.style.transform = 'rotate(' + deg + 'deg)';
+          el.innerHTML = `<img src="${base64 || 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='}" style="width:100%; height:100%; object-fit:contain; pointer-events:none;">`;
+        } else {
+          el.innerHTML = `<div style="font-size: ${scaledSize}px; letter-spacing: ${scaledSpacing}px; white-space:nowrap; color: #2563eb; font-weight: bold; background: rgba(255,255,255,0.7); padding: 0 4px; border: 1px dashed transparent; border-radius: 4px;">${textToDisplay}</div>`;
+        }
+        
+        el.addEventListener('mouseenter', () => el.firstChild.style.border = '1px dashed #2563eb');
+        el.addEventListener('mouseleave', () => el.firstChild.style.border = '1px dashed transparent');
+        
+        el.addEventListener('mousedown', (e) => {
+          e.stopPropagation();
+          draggedEl = el;
+          isDragging = true;
+          let px = parseFloat(f.x);
+          let py = parseFloat(f.y);
+          if (isNaN(px)) px = parseFloat(el.style.left) / displayScale || 0;
+          if (isNaN(py)) py = parseFloat(el.style.top) / displayScale || 0;
+          dragStartPositions = [{ id: f.id, tplId: tpl.id, x: px, y: py }];
+          const parentRect = wrapper.getBoundingClientRect();
+          offset.x = e.clientX - parentRect.left;
+          offset.y = e.clientY - parentRect.top;
+        });
+        
+        el.addEventListener('dblclick', (e) => {
+          e.stopPropagation();
+          if (f.type === 'strike') {
+            const w = prompt('삭제선 길이 입력:', f.width || 50);
+            if (w) {
+              f.width = parseInt(w, 10) || 50;
+              const tplToUpdate = templates.find(t => t.id === tplId);
+              if (tplToUpdate) {
+                const mainField = (tplToUpdate.fields || []).find(x => x.id === f.id);
+                if (mainField) mainField.width = f.width;
+                localforage.setItem('agc_templates', templates).catch(console.error);
+                generateAndPreview();
+              }
+            }
+          } else {
+            if (ans !== null) {
+              f.range = ans.trim();
+              const tplToUpdate = templates.find(t => t.id === tplId);
+              if (tplToUpdate) {
+                const mainField = (tplToUpdate.fields || []).find(x => x.id === f.id);
+                if (mainField) mainField.range = f.range;
+                localforage.setItem('agc_templates', templates).catch(console.error);
+                generateAndPreview();
+              }
+            }
+          }
+        });
+        
+        wrapper.appendChild(el);
+      });
+      elements.push(wrapper);
+    }
+  }
+  container.innerHTML = '';
+  elements.forEach(el => container.appendChild(el));
+}
+
+function printPdf() {
+  if (!currentBlobUrl) return alert('먼저 미리보기를 생성하세요.');
+  try {
+    printJS({ printable: currentBlobUrl, type: 'pdf', showModal: true });
+  } catch (e) {
+    console.error(e);
+    const w = window.open(currentBlobUrl, '_blank');
+    if (!w) {
+      alert('인쇄에 실패했습니다. 팝업이 차단되었을 수 있습니다. 브라우저 설정에서 팝업을 허용해주세요.');
+    }
+  }
+}
+
+async function downloadPdf() {
+  if (!activeTemplateIds || activeTemplateIds.length === 0) return alert('출력할 양식을 선택하세요.');
+  const name = document.getElementById('cus-name').value || '고객';
+  
+  const today = new Date();
+  const dateStr = today.getFullYear().toString() + 
+                  String(today.getMonth() + 1).padStart(2, '0') + 
+                  String(today.getDate()).padStart(2, '0');
+  
+  const data = JSON.parse(localStorage.getItem('agc_formdata') || '{}');
+  
+  try {
+    const fontUrl = 'https://raw.githubusercontent.com/google/fonts/main/ofl/nanumgothic/NanumGothic-Regular.ttf';
+    const fontRes = await fetch(fontUrl);
+    const fontBytes = await fontRes.arrayBuffer();
+
+    for (const tplId of activeTemplateIds) {
+      const tpl = templates.find(t => t.id === tplId);
+      if (!tpl) continue;
+      
+      const base64 = tpl.pdfUrl.split(',')[1];
+      const binaryString = window.atob(base64);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
+      
+      const pdfDoc = await PDFLib.PDFDocument.load(bytes.buffer);
+      
+      // Patch for pdf-lib missing CJK font bug
+      try {
+        const { PDFDict, PDFName } = PDFLib;
+        const fontDicts = pdfDoc.context.enumerateIndirectObjects().filter(
+          ([ref, obj]) => obj instanceof PDFDict && obj.get(PDFName.of('Type')) === PDFName.of('Font')
+        );
+        fontDicts.forEach(([ref, dict]) => {
+          const subtype = dict.get(PDFName.of('Subtype'));
+          if (subtype === PDFName.of('CIDFontType0') || subtype === PDFName.of('CIDFontType2')) {
+            if (!dict.has(PDFName.of('CIDSystemInfo'))) {
+              dict.set(PDFName.of('CIDSystemInfo'), pdfDoc.context.obj({
+                Registry: 'Adobe',
+                Ordering: 'Identity',
+                Supplement: 0,
+              }));
+            }
+          }
+        });
+      } catch (e) {
+        console.warn('Font patch failed', e);
+      }
+      
+      const pdfJsDoc = await pdfjsLib.getDocument({ data: bytes }).promise;
+      const viewports = {};
+      const rotations = {};
+      for (let i = 1; i <= pdfJsDoc.numPages; i++) {
+        const p = await pdfJsDoc.getPage(i);
+        viewports[i] = p.getViewport({ scale: 1.2 });
+        rotations[i] = p.rotate;
+      }
+      
+      const excluded = tpl.excludedPages || [];
+      const sortedExcluded = [...excluded].sort((a, b) => b - a);
+      for (const p of sortedExcluded) {
+        if (p >= 1 && p <= pdfDoc.getPageCount()) {
+          pdfDoc.removePage(p - 1);
+        }
+      }
+      
+      const pages = pdfDoc.getPages();
+      if (pages.length === 0) continue;
+      
+      pdfDoc.registerFontkit(window.fontkit);
+      const customFont = await pdfDoc.embedFont(fontBytes);
+      const helveticaFont = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+      
+      for (const f of (tpl.fields || [])) {
+        let val = getRealDataValue(f);
+        let fontToUse = customFont;
+        
+        if (f.type === 'check') { fontToUse = helveticaFont; }
+        
+        if (!val && f.type !== 'strike') continue;
+        
+        const fPage = f.page || 1;
+        if (excluded.includes(fPage)) continue;
+        
+        let offset = 0;
+        for (let i = 1; i < fPage; i++) {
+          if (!excluded.includes(i)) offset++;
+        }
+        
+        const pageIndex = offset;
+        const page = pages[pageIndex];
+        if (!page) continue;
+        
+        const viewport = viewports[fPage];
+        const pageRot = rotations[fPage] || 0;
+        const BASE_SCALE = 1.2;
+        
+        if (f.type === 'insuredSignature' || f.type === 'policyholderSignature') {
+          const formdata = JSON.parse(localStorage.getItem('agc_formdata') || '{}');
+          const b64 = formdata[f.type + 'Data'];
+          if (b64 && b64.startsWith('data:image/png;base64,')) {
+            try {
+              const pngImageBytes = Uint8Array.from(atob(b64.split(',')[1]), c => c.charCodeAt(0));
+              const embeddedPng = await pdfDoc.embedPng(pngImageBytes);
+              
+              const deg = f.rotate || 0;
+              const fw = f.width || 80;
+              const fh = f.height || 40;
+              
+              const [pdfX, pdfY] = viewport.convertToPdfPoint(f.x, f.y);
+              // Wait, viewport.convertToPdfPoint scales distances? 
+              // The viewport handles the UI -> PDF coordinate translation including scaling and rotation of the page itself.
+              // Actually, PDF-Lib drawImage doesn't take UI units. It takes PDF units.
+              // UI size (fw, fh) needs to be scaled by the ratio of PDF size to UI size.
+              // In this PDF system, UI size = PDF size * BASE_SCALE (1.2)
+              const pdfW = fw / BASE_SCALE;
+              const pdfH = fh / BASE_SCALE;
+              
+              // bottom-left corner in PDF space
+              const blX = pdfX;
+              const blY = pdfY - pdfH;
+              
+              // To rotate around center, we need the center in PDF space
+              const cx = blX + pdfW/2;
+              const cy = blY + pdfH/2;
+              
+              const rad = -(deg * Math.PI / 180);
+              
+              // Offset for PDFLib drawImage which rotates around its bottom-left origin
+              const rx = (-pdfW/2) * Math.cos(rad) - (-pdfH/2) * Math.sin(rad);
+              const ry = (-pdfW/2) * Math.sin(rad) + (-pdfH/2) * Math.cos(rad);
+              
+              page.drawImage(embeddedPng, {
+                x: cx + rx,
+                y: cy + ry,
+                width: pdfW,
+                height: pdfH,
+                rotate: PDFLib.degrees(-deg)
+              });
+            } catch(err) { console.error("Failed to embed signature", err); }
+          }
+        } else if (f.type === 'strike') {
+          const lineLenUi = (f.width || 50) * BASE_SCALE;
+          const [s1X, s1Y] = viewport.convertToPdfPoint(f.x, f.y - 1.2);
+          const [e1X, e1Y] = viewport.convertToPdfPoint(f.x + lineLenUi, f.y - 1.2);
+          page.drawLine({ start: { x: s1X, y: s1Y }, end: { x: e1X, y: e1Y }, thickness: 1, color: PDFLib.rgb(1, 0, 0) });
+          
+          const [s2X, s2Y] = viewport.convertToPdfPoint(f.x, f.y + 1.2);
+          const [e2X, e2Y] = viewport.convertToPdfPoint(f.x + lineLenUi, f.y + 1.2);
+          page.drawLine({ start: { x: s2X, y: s2Y }, end: { x: e2X, y: e2Y }, thickness: 1, color: PDFLib.rgb(1, 0, 0) });
+        } else {
+          const rawFontSize = f.fontSize || (f.type === 'check' ? 14 : 11);
+          const fontSize = rawFontSize;
+          
+          const uiBaselineY = f.y + (rawFontSize * 0.844);
+          const [pdfX, pdfY] = viewport.convertToPdfPoint(f.x, uiBaselineY);
+          
+          const rawLetterSpacing = f.letterSpacing || 0;
+          
+          if (rawLetterSpacing && rawLetterSpacing !== 0 && val) {
+            let cxUi = f.x;
+            for (let i = 0; i < val.length; i++) {
+              const char = val[i];
+              const [cX, cY] = viewport.convertToPdfPoint(cxUi, uiBaselineY);
+              page.drawText(char, { x: cX, y: cY, size: fontSize, font: fontToUse, color: PDFLib.rgb(0, 0, 0), rotate: PDFLib.degrees(pageRot) });
+              const cw = fontToUse.widthOfTextAtSize(char, fontSize);
+              cxUi += (cw + rawLetterSpacing) * BASE_SCALE;
+            }
+          } else {
+            page.drawText(val, {
+              x: pdfX,
+              y: pdfY,
+              size: fontSize,
+              font: fontToUse,
+              color: PDFLib.rgb(0, 0, 0),
+              rotate: PDFLib.degrees(pageRot)
+            });
+          }
+        }
+      }
+      
+      const pdfBytesOutput = await pdfDoc.save();
+      const fileName = `${name}_${dateStr}_${tpl.name}.pdf`;
+      
+      const blob = new Blob([pdfBytesOutput], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+      
+      // 브라우저 다중 다운로드 차단을 방지하기 위해 약간의 딜레이 추가
+      await new Promise(r => setTimeout(r, 500));
+    }
+  } catch (err) {
+    console.error(err);
+    alert('개별 파일 생성 중 오류가 발생했습니다.');
+  }
+}
+

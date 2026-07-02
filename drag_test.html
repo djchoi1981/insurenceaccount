@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>드래그 테스트</title>
+<style>
+  body { margin: 0; font-family: sans-serif; background: #eee; }
+  #wrapper {
+    position: relative;
+    width: 600px; height: 800px;
+    margin: 50px auto;
+    background: white;
+    border: 2px solid #333;
+  }
+  .draggable-field {
+    position: absolute;
+    cursor: move;
+    user-select: none;
+    background: rgba(59, 130, 246, 0.2);
+    border: 1px dashed rgba(59, 130, 246, 0.5);
+    padding: 4px 8px;
+    font-size: 14px;
+    white-space: nowrap;
+  }
+  #log {
+    position: fixed;
+    top: 10px; right: 10px;
+    width: 350px; height: 300px;
+    background: rgba(0,0,0,0.85);
+    color: #0f0;
+    font-family: monospace;
+    font-size: 11px;
+    padding: 8px;
+    overflow-y: auto;
+    z-index: 9999;
+  }
+</style>
+</head>
+<body>
+
+<h2 style="text-align:center; margin-top:10px;">드래그 테스트 - 아래 파란색 박스를 마우스로 끌어보세요</h2>
+
+<div id="wrapper">
+  <div class="draggable-field" data-id="f1" style="left: 50px; top: 50px;">필드 1: 홍길동</div>
+  <div class="draggable-field" data-id="f2" style="left: 200px; top: 150px;">필드 2: 010-1234-5678</div>
+  <div class="draggable-field" data-id="f3" style="left: 100px; top: 300px;">필드 3: 서울시 강남구</div>
+</div>
+
+<div id="log"></div>
+
+<script>
+const log = (msg) => {
+  const el = document.getElementById('log');
+  const d = document.createElement('div');
+  d.textContent = msg;
+  el.appendChild(d);
+  el.scrollTop = el.scrollHeight;
+};
+
+let draggedEl = null;
+let isDragging = false;
+let startMouseX = 0, startMouseY = 0;
+let startElLeft = 0, startElTop = 0;
+
+document.querySelectorAll('.draggable-field').forEach(el => {
+  el.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    draggedEl = el;
+    isDragging = true;
+    startElLeft = parseFloat(el.style.left);
+    startElTop = parseFloat(el.style.top);
+    startMouseX = e.clientX;
+    startMouseY = e.clientY;
+    
+    log(`MOUSEDOWN on ${el.dataset.id} at left=${startElLeft} top=${startElTop}`);
+  });
+});
+
+document.addEventListener('mousemove', (e) => {
+  if (!isDragging || !draggedEl) return;
+  e.preventDefault();
+  
+  const dx = e.clientX - startMouseX;
+  const dy = e.clientY - startMouseY;
+  
+  draggedEl.style.left = (startElLeft + dx) + 'px';
+  draggedEl.style.top  = (startElTop + dy) + 'px';
+});
+
+document.addEventListener('mouseup', (e) => {
+  if (isDragging && draggedEl) {
+    log(`MOUSEUP: ${draggedEl.dataset.id} final left=${draggedEl.style.left} top=${draggedEl.style.top}`);
+    isDragging = false;
+    draggedEl = null;
+  }
+});
+
+log('테스트 준비됨. 파란 박스를 마우스로 끌어보세요.');
+</script>
+</body>
+</html>

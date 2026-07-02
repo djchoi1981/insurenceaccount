@@ -1,0 +1,119 @@
+--- index.html
++++ index.html
+@@ -2754,6 +2754,115 @@
+ }
+ 
+ async function downloadPdf() {
++  requireProFeature(async () => {
++  if (!activeTemplateIds || activeTemplateIds.length === 0) return alert('출력할 양식을 선택하세요.');
++  const name = document.getElementById('cus-name').value || '고객';
++  
++  const today = new Date();
++  const dateStr = today.getFullYear().toString() + 
++                  String(today.getMonth() + 1).padStart(2, '0') + 
++                  String(today.getDate()).padStart(2, '0');
++  
++  const data = JSON.parse(localStorage.getItem('agc_formdata') || '{}');
++  
++  try {
++    const fontUrl = 'https://raw.githubusercontent.com/google/fonts/main/ofl/nanumgothic/NanumGothic-Regular.ttf';
++    const fontRes = await fetch(fontUrl);
++    const fontBytes = await fontRes.arrayBuffer();
++
++    for (const tplId of activeTemplateIds) {
++      const tpl = templates.find(t => t.id === tplId);
++      if (!tpl) continue;
++      
++      const base64 = tpl.pdfUrl.split(',')[1];
++      const binaryString = window.atob(base64);
++      const bytes = new Uint8Array(binaryString.length);
++      for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
++      
++      const pdfDoc = await PDFLib.PDFDocument.load(bytes.buffer);
++      
++      // Patch for pdf-lib missing CJK font bug
++      try {
++        const { PDFDict, PDFName } = PDFLib;
++        const fontDicts = pdfDoc.context.enumerateIndirectObjects().filter(
++          ([ref, obj]) => obj instanceof PDFDict && obj.get(PDFName.of('Type')) === PDFName.of('Font')
++        );
++        fontDicts.forEach(([ref, dict]) => {
++          const subtype = dict.get(PDFName.of('Subtype'));
++          if (subtype === PDFName.of('CIDFontType0') || subtype === PDFName.of('CIDFontType2')) {
++            if (!dict.has(PDFName.of('CIDSystemInfo'))) {
++              dict.set(PDFName.of('CIDSystemInfo'), pdfDoc.context.obj({
++                Registry: 'Adobe',
++                Ordering: 'Identity',
++                Supplement: 0,
++              }));
++            }
++          }
++        });
++      } catch (e) {
++        console.warn('Font patch failed', e);
++      }
++      
++      const pdfJsDoc = await pdfjsLib.getDocument({ data: bytes }).promise;
++      const viewports = {};
++      const rotations = {};
++      for (let i = 1; i <= pdfJsDoc.numPages; i++) {
++        const p = await pdfJsDoc.getPage(i);
++        viewports[i] = p.getViewport({ scale: 1.2 });
++        rotations[i] = p.rotate;
++      }
++      
++      const excluded = tpl.excludedPages || [];
++      const sortedExcluded = [...excluded].sort((a, b) => b - a);
++      for (const p of sortedExcluded) {
++        if (p >= 1 && p <= pdfDoc.getPageCount()) {
++          pdfDoc.removePage(p - 1);
++        }
++      }
++      
++      const pages = pdfDoc.getPages();
++      if (pages.length === 0) continue;
++      
++      pdfDoc.registerFontkit(window.fontkit);
++      const customFont = await pdfDoc.embedFont(fontBytes);
++      const helveticaFont = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
++      
++      for (const f of (tpl.fields || [])) {
++        let val = getRealDataValue(f);
++        let fontToUse = customFont;
++        
++        if (f.type === 'check') { fontToUse = helveticaFont; }
++        
++        if (!val && f.type !== 'strike') continue;
++        
++        const fPage = f.page || 1;
++        if (excluded.includes(fPage)) continue;
++        
++        let offset = 0;
++        for (let i = 1; i < fPage; i++) {
++          if (!excluded.includes(i)) offset++;
++        }
++        
++        const pageIndex = offset;
++        const page = pages[pageIndex];
++        if (!page) continue;
++        
++        const viewport = viewports[fPage];
++        const pageRot = rotations[fPage] || 0;
++        const BASE_SCALE = 1.2;
++        
++        if (f.type === 'insuredSignature' || f.type === 'policyholderSignature') {
++          const formdata = JSON.parse(localStorage.getItem('agc_formdata') || '{}');
++          const b64 = formdata[f.type + 'Data'];
++          if (b64 && b64.startsWith('data:image/')) {
++            try {
++              const imageBytes = Uint8Array.from(atob(b64.split(',')[1]), c => c.charCodeAt(0));
++              let embeddedImg;
++              if (b64.startsWith('data:image/png')) {
++                embeddedImg = await pdfDoc.embedPng(imageBytes);
++              } else if (b64.startsWith('data:image/jpeg') || b64.startsWith('data:image/jpg')) {
++                embeddedImg = await pdfDoc.embedJpg(imageBytes);
++              }
++              
+               if (embeddedImg) {
+                 const deg = f.rotate || 0;
+                 const fw = f.width || 80;
