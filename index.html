@@ -1011,6 +1011,14 @@ function handleInsuredInput() {
     document.getElementById('cus-policyholderPhone').value = document.getElementById('cus-insuredPhone').value;
     document.getElementById('cus-policyholderAddress').value = document.getElementById('cus-insuredAddress').value;
     syncPolicyholderToLegalRep();
+    
+    // Auto-update PDF preview with a short debounce to avoid lag while typing
+    if (typeof generateAndPreview === 'function' && activeTemplateIds && activeTemplateIds.length > 0) {
+      clearTimeout(window.previewDebounceTimer);
+      window.previewDebounceTimer = setTimeout(() => {
+        generateAndPreview();
+      }, 500);
+    }
   }
   saveFormData();
 }
@@ -1060,7 +1068,7 @@ function toggleSameAsInsured() {
   saveFormData();
   
   // Update PDF preview automatically
-  if (typeof generateAndPreview === 'function' && window.activeTemplateIds && window.activeTemplateIds.length > 0) {
+  if (typeof generateAndPreview === 'function' && activeTemplateIds && activeTemplateIds.length > 0) {
     generateAndPreview();
   }
 }
