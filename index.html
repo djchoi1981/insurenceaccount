@@ -703,6 +703,16 @@ iframe { width: 100%; height: calc(100vh - 180px); border: none; border-radius: 
         </button>
         <input type="file" id="folder-upload" webkitdirectory directory multiple style="display:none" onchange="handleFolderUpload(event)">
         
+        <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+          <button class="btn btn-outline w-full" style="flex:1; padding: 0.25rem; font-size: 0.8rem;" onclick="exportSettings()">
+            <i class="ri-download-2-line"></i> 설정 백업
+          </button>
+          <button class="btn btn-outline w-full" style="flex:1; padding: 0.25rem; font-size: 0.8rem;" onclick="document.getElementById('settings-upload').click()">
+            <i class="ri-upload-2-line"></i> 설정 복원
+          </button>
+          <input type="file" id="settings-upload" accept=".json" style="display:none" onchange="importSettings(event)">
+        </div>
+        
         <div id="modal-tpl-list" class="tpl-list" style="overflow-y:auto; flex:1;">
           <!-- Items -->
         </div>
@@ -1678,6 +1688,40 @@ function deleteTemplate(id) {
   if (editingTemplateId === id) { editingTemplateId = null; clearEditor(); }
   renderModalTemplates();
 }
+
+function exportSettings() {
+  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(templates, null, 2));
+  const dlAnchorElem = document.createElement('a');
+  dlAnchorElem.setAttribute("href", dataStr);
+  dlAnchorElem.setAttribute("download", "보험금청구_템플릿설정_백업.json");
+  dlAnchorElem.click();
+}
+
+function importSettings(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async function(evt) {
+    try {
+      const parsed = JSON.parse(evt.target.result);
+      if (Array.isArray(parsed)) {
+        templates = parsed;
+        await localforage.setItem('agc_templates', templates);
+        renderModalTemplates();
+        renderActiveTemplates();
+        alert('설정이 성공적으로 복원되었습니다.');
+      } else {
+        alert('올바른 백업 파일 형식이 아닙니다.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('파일을 읽는 중 오류가 발생했습니다.');
+    }
+    e.target.value = ''; // Reset input
+  };
+  reader.readAsText(file);
+}
+
 
 async function selectEditTemplate(id) {
   editingTemplateId = id;
