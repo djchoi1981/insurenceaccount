@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  body { padding: 50px; font-family: sans-serif; }
+  .pdf-wrapper { width: 500px; height: 500px; border: 1px solid black; position: relative; }
+  .draggable-field {
+    position: absolute;
+    cursor: move;
+    background: rgba(255,0,0,0.5);
+    padding: 10px;
+  }
+</style>
+</head>
+<body>
+  <div class="pdf-wrapper" id="pdf-wrapper">
+    <div class="draggable-field" data-id="123" style="left: 100px; top: 100px;">Drag me</div>
+  </div>
+
+  <script>
+    let isDragging = false;
+    let draggedEl = null;
+    let offset = {x: 0, y: 0};
+    let dragStartPositions = [];
+    const pdfScale = 1.2;
+
+    const el = document.querySelector('.draggable-field');
+    el.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      draggedEl = el;
+      isDragging = true;
+      const parentRect = el.parentElement.getBoundingClientRect();
+      offset.x = e.clientX - parentRect.left;
+      offset.y = e.clientY - parentRect.top;
+      dragStartPositions = [{ id: '123', x: 100 / (pdfScale / 1.2), y: 100 / (pdfScale / 1.2) }];
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!isDragging || !draggedEl) return;
+      e.preventDefault();
+      const wrapper = draggedEl.parentElement;
+      const parentRect = wrapper.getBoundingClientRect();
+      const renderScale = pdfScale / 1.2;
+      const currentX = e.clientX - parentRect.left;
+      const currentY = e.clientY - parentRect.top;
+      const dx = (currentX - offset.x) / renderScale;
+      const dy = (currentY - offset.y) / renderScale;
+
+      dragStartPositions.forEach(p => {
+        const target = wrapper.querySelector(`.draggable-field[data-id="${p.id}"]`);
+        if (target) {
+          target.style.left = ((p.x + dx) * renderScale) + 'px';
+          target.style.top = ((p.y + dy) * renderScale) + 'px';
+        }
+      });
+    });
+
+    document.addEventListener('mouseup', () => {
+      isDragging = false;
+      draggedEl = null;
+    });
+  </script>
+</body>
+</html>
