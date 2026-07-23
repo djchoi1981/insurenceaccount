@@ -1065,7 +1065,11 @@ function toggleSameAsInsured() {
       el.style.opacity = isSame ? '0.6' : '1';
     }
   });
-  if (isSame) handleInsuredInput();
+  
+  if (isSame) { 
+    handleInsuredInput(); 
+  }
+  
   saveFormData();
   
   // Update PDF preview automatically
