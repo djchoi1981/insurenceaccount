@@ -712,6 +712,9 @@ iframe { width: 100%; height: calc(100vh - 180px); border: none; border-radius: 
           </button>
           <input type="file" id="settings-upload" accept=".json" style="display:none" onchange="importSettings(event)">
         </div>
+        <button class="btn w-full" style="margin-top: 0.5rem; background: var(--color-primary); color: white; border: none; font-weight: bold;" onclick="publishToWeb()">
+          <i class="ri-global-line"></i> 웹에 배포하기 (전체 저장)
+        </button>
         
         <div id="modal-tpl-list" class="tpl-list" style="overflow-y:auto; flex:1;">
           <!-- Items -->
@@ -1461,10 +1464,28 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (typeof PRELOADED_TEMPLATES !== 'undefined') {
     let changed = false;
     for (const p of PRELOADED_TEMPLATES) {
-      const existing = templates.find(t => t.name === p.name);
-      if (!existing) {
-        templates.push({ id: 'tpl_' + Date.now() + Math.random(), name: p.name, pdfUrl: p.base64, fields: [] });
+      const existingIndex = templates.findIndex(t => t.name === p.name);
+      const newTpl = { 
+        id: p.id || ('tpl_' + Date.now() + Math.random()), 
+        name: p.name, 
+        pdfUrl: p.base64 || p.pdfUrl, 
+        fields: p.fields || [],
+        category: p.category || '',
+        displayName: p.displayName || '',
+        lastUpdated: p.lastUpdated || Date.now()
+      };
+      
+      if (existingIndex === -1) {
+        templates.push(newTpl);
         changed = true;
+      } else {
+        const existing = templates[existingIndex];
+        const pTime = p.lastUpdated || 0;
+        const eTime = existing.lastUpdated || 0;
+        if (pTime > eTime) {
+          templates[existingIndex] = newTpl;
+          changed = true;
+        }
       }
     }
     if (changed) await localforage.setItem('agc_templates', templates);
@@ -1485,7 +1506,8 @@ function handleFileUpload(e) {
       id: 'tpl_' + Date.now(),
       name: file.name.replace('.pdf', ''),
       pdfUrl: b64,
-      fields: []
+      fields: [],
+      lastUpdated: Date.now()
     };
     templates.push(newTpl);
     localforage.setItem('agc_templates', templates).catch(console.error);
@@ -1507,8 +1529,12 @@ async function handleFolderUpload(e) {
   for (const file of files) {
     const base64 = await readFileAsBase64(file);
     const name = file.name.replace(/\.[^/.]+$/, "");
-    if (!templates.find(t => t.name === name)) {
-      templates.push({ id: 'tpl_' + Date.now() + Math.random(), name: name, pdfUrl: base64, fields: [] });
+    const existingIndex = templates.findIndex(t => t.name === name);
+    if (existingIndex === -1) {
+      templates.push({ id: 'tpl_' + Date.now() + Math.random(), name: name, pdfUrl: base64, fields: [], lastUpdated: Date.now() });
+    } else {
+      templates[existingIndex].pdfUrl = base64;
+      templates[existingIndex].lastUpdated = Date.now();
     }
   }
   await localforage.setItem('agc_templates', templates);
@@ -1636,6 +1662,7 @@ function closeTemplateManager() {
   const tpl = templates.find(t => t.id === editingTemplateId);
   if (tpl) {
     tpl.fields = JSON.parse(JSON.stringify(editingFields));
+    tpl.lastUpdated = Date.now();
     localforage.setItem('agc_templates', templates).catch(console.error);
   }
   document.getElementById('tpl-modal').classList.remove('active');
@@ -1676,6 +1703,7 @@ async function editTemplateInfo(e, id) {
   
   t.displayName = newName.trim() || currentName;
   t.category = newCat;
+  t.lastUpdated = Date.now();
   
   await localforage.setItem('agc_templates', templates);
   renderModalTemplates();
@@ -1727,6 +1755,26 @@ function importSettings(e) {
   reader.readAsText(file);
 }
 
+function publishToWeb() {
+  if (!confirm("현재 양식과 좌표 설정을 웹에 배포하시겠습니까?\\n(다운로드되는 templates_data.js 파일로 기존 파일을 덮어쓰기 후 깃허브로 Push해야 적용됩니다.)")) return;
+  
+  // 모든 템플릿의 lastUpdated가 확실히 최신이 되도록 현재 시간을 보장 (배포 시점 기준)
+  const now = Date.now();
+  templates.forEach(t => {
+    if (!t.lastUpdated) t.lastUpdated = now;
+  });
+  
+  const jsContent = "window.PRELOADED_TEMPLATES = " + JSON.stringify(templates, null, 2) + ";";
+  const blob = new Blob([jsContent], { type: 'application/javascript' });
+  const url = URL.createObjectURL(blob);
+  const dlAnchorElem = document.createElement('a');
+  dlAnchorElem.href = url;
+  dlAnchorElem.download = "templates_data.js";
+  document.body.appendChild(dlAnchorElem);
+  dlAnchorElem.click();
+  document.body.removeChild(dlAnchorElem);
+  URL.revokeObjectURL(url);
+}
 
 async function selectEditTemplate(id) {
   editingTemplateId = id;
