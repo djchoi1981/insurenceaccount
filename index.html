@@ -1058,6 +1058,11 @@ function toggleSameAsInsured() {
   });
   if (isSame) handleInsuredInput();
   saveFormData();
+  
+  // Update PDF preview automatically
+  if (typeof generateAndPreview === 'function' && window.activeTemplateIds && window.activeTemplateIds.length > 0) {
+    generateAndPreview();
+  }
 }
 
 window.execDaumPostcode = function(targetId) {
