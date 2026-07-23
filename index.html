@@ -1025,13 +1025,36 @@ function syncPolicyholderToLegalRep() {
 }
 
 
+let originalPolicyholderData = null;
+
 function toggleSameAsInsured() {
   const isSame = document.getElementById('cus-sameAsInsured').checked;
   const ids = ['cus-policyholderName', 'cus-policyholderRRN', 'cus-policyholderPhone', 'cus-policyholderAddress'];
+  
+  if (isSame) {
+    // Save current values before overwriting
+    originalPolicyholderData = {};
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      originalPolicyholderData[id] = el ? el.value : '';
+    });
+  } else {
+    // Restore original values
+    if (originalPolicyholderData) {
+      ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = originalPolicyholderData[id] || '';
+      });
+      originalPolicyholderData = null;
+    }
+  }
+
   ids.forEach(id => {
     const el = document.getElementById(id);
-    el.readOnly = isSame;
-    el.style.opacity = isSame ? '0.6' : '1';
+    if(el) {
+      el.readOnly = isSame;
+      el.style.opacity = isSame ? '0.6' : '1';
+    }
   });
   if (isSame) handleInsuredInput();
   saveFormData();
@@ -1263,6 +1286,14 @@ function toggleCompInfo() {
 }
 
 function saveFormData() {
+  const sameAsInsuredEl = document.getElementById('cus-sameAsInsured');
+  if (sameAsInsuredEl && sameAsInsuredEl.checked) {
+    if(document.getElementById('cus-policyholderName')) document.getElementById('cus-policyholderName').value = document.getElementById('cus-name').value;
+    if(document.getElementById('cus-policyholderRRN')) document.getElementById('cus-policyholderRRN').value = document.getElementById('cus-rrn').value;
+    if(document.getElementById('cus-policyholderPhone')) document.getElementById('cus-policyholderPhone').value = document.getElementById('cus-insuredPhone').value;
+    if(document.getElementById('cus-policyholderAddress')) document.getElementById('cus-policyholderAddress').value = document.getElementById('cus-insuredAddress').value;
+  }
+
   const getVal = (id) => { const el = document.getElementById(id); return el ? el.value : ''; };
   const getChk = (id) => { const el = document.getElementById(id); return (el && el.checked) ? 'V' : ''; };
 
