@@ -965,7 +965,8 @@ function getRealDataValue(f) {
     if (f.type === 'compInfoName' && data.compInfoRadioVal === '피보험자') val = data.name;
     if (f.type === 'compInfoPhone' && data.compInfoRadioVal === '피보험자') val = data.insuredPhone;
     
-    if (data.rrn && calculateAgeFromRRN(data.rrn) < 14) {
+    const age = data.rrn ? calculateAgeFromRRN(data.rrn) : null;
+    if (age !== null && age < 14) {
       if (f.type === 'policyholderName' && data.legalRepName) val = data.legalRepName;
       if (f.type === 'policyholderRRN' && data.legalRepRRN) val = data.legalRepRRN;
     }
