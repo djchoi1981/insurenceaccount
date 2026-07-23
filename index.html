@@ -1690,11 +1690,16 @@ function deleteTemplate(id) {
 }
 
 function exportSettings() {
-  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(templates, null, 2));
+  const data = JSON.stringify(templates, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
   const dlAnchorElem = document.createElement('a');
-  dlAnchorElem.setAttribute("href", dataStr);
-  dlAnchorElem.setAttribute("download", "보험금청구_템플릿설정_백업.json");
+  dlAnchorElem.href = url;
+  dlAnchorElem.download = "보험금청구_템플릿설정_백업.json";
+  document.body.appendChild(dlAnchorElem);
   dlAnchorElem.click();
+  document.body.removeChild(dlAnchorElem);
+  URL.revokeObjectURL(url);
 }
 
 function importSettings(e) {
